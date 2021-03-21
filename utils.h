@@ -7,8 +7,22 @@
 #include <algorithm>    // std::sort, std::stable_sort
 #include <cassert>
 #include <set>
+#include <iostream>
 
 namespace Bayes {
+
+	template <class T>
+	std::ostream& operator<<(std::ostream& out, const std::vector<T>& v) {
+		out << "[";
+		for (size_t i = 0; i < v.size(); ++i) {
+			out << v[i];
+			if (i < v.size() - 1) {
+				out << ",";
+			}
+		}
+		out << "]" << std::endl;
+		return out;
+	}
 
 	// https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
 	template <typename T>

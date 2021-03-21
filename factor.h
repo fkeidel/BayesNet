@@ -3,6 +3,8 @@
 
 #include<vector>
 #include<cstdint>
+#include<iostream>
+#include "utils.h"
 
 namespace Bayes {
 
@@ -38,6 +40,8 @@ namespace Bayes {
 		const std::vector<double>& Val() const { return val_; }
 
 		void SetVal(const std::vector<double>& val);
+		void SetVal(size_t index, double val);
+
 
 	private:
 		std::vector<uint32_t> var_;		// list of variable ids
@@ -46,8 +50,12 @@ namespace Bayes {
 	};
 
 	Factor FactorProduct(const Factor& a, const Factor& b);
-	Factor FactorMarginalization(const Factor& a, std::vector<uint32_t>& var);
+	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& var);
+	void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
+	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
+	std::vector<Factor> VariableElimination(std::vector<Factor>& f, std::vector<uint32_t>& z);
 
+	std::ostream& operator<<(std::ostream& out, const Factor& v);
 }
 
 #endif // FACTOR_H
