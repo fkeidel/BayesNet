@@ -135,8 +135,38 @@ namespace Bayes {
 		ExpectFactorsEqual(f, expected);
 	}
 
-	TEST(VariableElimination, VariableElimination) {
+	TEST(ComputeJointDistribution, ComputeJointDistribution) {
 
+		Factor factor0{ {0}, {2}, {0.11, 0.89} }; // P(X_1)
+		Factor factor1{ {1,0}, {2,2}, {0.59, 0.41, 0.22, 0.78} }; // P(X_2 | X_1)
+		Factor factor2{ {2,1}, {2,2}, {0.39, 0.61, 0.06, 0.94} }; // P(X_3 | X_2)
+		std::vector<Factor> f{ factor0,factor1,factor2 };
+		// FACTORS.JOINT = struct('var', [1, 2, 3], 'card', [2, 2, 2], 'val', [0.025311, 0.076362, 0.002706, 0.041652, 0.039589, 0.119438, 0.042394, 0.652548]);
+		Factor joint{ {0,1,2}, {2,2,2}, {0.025311, 0.076362, 0.002706, 0.041652, 0.039589, 0.119438, 0.042394, 0.652548} }; // P(X_1)
+
+		const auto result = ComputeJointDistribution(f);
+
+		ExpectFactorEqual(result, joint);
+	}
+
+	TEST(ComputeMarginal, ComputeMarginal) {
+		Factor factor0{ {0}, {2}, {0.11, 0.89} }; // P(X_1)
+		Factor factor1{ {1,0}, {2,2}, {0.59, 0.41, 0.22, 0.78} }; // P(X_2 | X_1)
+		Factor factor2{ {2,1}, {2,2}, {0.39, 0.61, 0.06, 0.94} }; // P(X_3 | X_2)
+		std::vector<Factor> f{ factor0,factor1,factor2 };
+		// FACTORS.MARGINAL = struct('var', [2, 3], 'card', [2, 2], 'val', [0.0858, 0.0468, 0.1342, 0.7332]);
+		Factor marginal{ {1,2}, {2,2}, {0.0858, 0.0468, 0.1342, 0.7332} };
+
+		std::vector<uint32_t> var{ 1,2 };
+		std::vector<std::pair<uint32_t, uint32_t>> e{ {0,1} };
+
+		//FACTORS.MARGINAL = ComputeMarginal([2, 3], FACTORS.INPUT, [1, 2]);
+		const auto result = ComputeMarginal(var, f, e);
+
+		ExpectFactorEqual(result, marginal);
+	}
+
+	TEST(VariableElimination, VariableElimination) {
 		Factor factor0{ {0}, {2}, {0.11, 0.89} }; // P(X_1)
 		Factor factor1{ {1,0}, {2,2}, {0.59, 0.41, 0.22, 0.78} }; // P(X_2 | X_1)
 		Factor factor2{ {2,1}, {2,2}, {0.39, 0.61, 0.06, 0.94} }; // P(X_3 | X_2)

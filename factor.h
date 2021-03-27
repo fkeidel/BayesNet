@@ -42,6 +42,8 @@ namespace Bayes {
 		void SetVal(const std::vector<double>& val);
 		void SetVal(size_t index, double val);
 
+		Factor CPD(uint32_t y);
+
 
 	private:
 		std::vector<uint32_t> var_;		// list of variable ids
@@ -53,7 +55,9 @@ namespace Bayes {
 	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& var);
 	void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
-	std::vector<Factor> VariableElimination(std::vector<Factor>& f, std::vector<uint32_t>& z);
+	std::vector<Factor> VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);
+	Factor ComputeJointDistribution(const std::vector<Factor>& f);
+	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v);
 }

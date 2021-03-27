@@ -2,31 +2,58 @@
 #include <numeric>
 #include <iterator>
 #include <iostream>
+#include <cassert>
 
 namespace Bayes {
 	Factor::Factor(const std::vector<uint32_t>& var, const std::vector<uint32_t>& card, const std::vector<double>& val) :
 		var_(var), card_(card), val_(val)
 	{
+		assert(("card size must be qual to var size", card.size() == var.size()));
 	}
 
+	// AssignmentToIndex Convert assignment to index.
+	//
+	//   I = AssignmentToIndex(A, D) converts an assignment, A, over variables
+	//   with cardinality D to an index into the .val vector for a factor. 
+	//   If A is a matrix then the function converts each row of A to an index.
+	//
+	// function I = AssignmentToIndex(A, D)
+	//	I = cumprod([1, D(1:end - 1)]) * (A(:) - 1) + 1;
 	std::size_t Factor::AssigmentToIndex(const std::vector<uint32_t>& assignment) const
 	{
-		std::vector<uint32_t> intervals(card_.size(), 0);
+		// card = [1, D(1:end - 1)]
 		std::vector<uint32_t> card{ 1 };
 		std::copy(card_.begin(), card_.end() - 1, std::back_inserter(card));
+		// intervals = cumprod(card)
+		std::vector<uint32_t> intervals(card_.size(), 0);
 		std::partial_sum(card.begin(), card.end(), intervals.begin(), std::multiplies<uint32_t>());
+		//	I = cumprod([1, D(1:end - 1)]) * (A(:) - 1) + 1;
 		return std::inner_product(intervals.begin(), intervals.end(), assignment.begin(), 0);
 	}
 
+	// IndexToAssignment Convert index to variable assignment.
+	//
+	//   A = IndexToAssignment(I, D) converts an index, I, into the .val vector
+	//   into an assignment over variables with cardinality D. If I is a vector, 
+	//   then the function produces a matrix of assignments, one assignment 
+	//   per row.
+	//
+	//   See also AssignmentToIndex.m and FactorTutorial.m
+	//
+	//function A = IndexToAssignment(I, D)
+	//	A = mod(floor(repmat(I(:) - 1, 1, length(D)) . / repmat(cumprod([1, D(1:end - 1)]), length(I), 1)), ...
+	//		repmat(D, length(I), 1)) + 1;
 	std::vector<uint32_t> Factor::IndexToAssignment(size_t index) const
 	{
 		std::vector<uint32_t> assignment(card_.size(), 0);
-
 		std::vector<uint32_t> intervals(card_.size(), 0);
+		// card = [1, D(1:end - 1)]
 		std::vector<uint32_t> card{ 1 };
 		std::copy(card_.begin(), card_.end() - 1, std::back_inserter(card));
+		// intervals = cumprod(card)
 		std::partial_sum(card.begin(), card.end(), intervals.begin(), std::multiplies<uint32_t>());
-
+		//	A = mod(floor(repmat(I(:) - 1, 1, length(D)) . / repmat(cumprod([1, D(1:end - 1)]), length(I), 1)), ...
+		//		repmat(D, length(I), 1)) + 1;
 		for (size_t i = 0; i < card_.size(); ++i) {
 			assignment[i] = (index / intervals[i]) % card_[i];
 		}
@@ -51,6 +78,91 @@ namespace Bayes {
 	void Factor::SetVal(size_t index, double val)
 	{
 		val_[index] = val;
+	}
+
+	// function [CPD] = CPDFromFactor(F, Y)
+	//  Reorder the var, card and val fields of Fnew so that the last var is the 
+	//  child variable.
+	// original Matlab code: Copyright (C) Daphne Koller, Stanford University, 2012
+	Factor Factor::CPD(uint32_t y) {
+		//  YIndexInF = find(F.var == Y);
+		const auto& it = std::find(var_.begin(), var_.end(), y);
+		assert(("y must be in var_", it != var_.end())); 
+		const auto y_index_in_f = std::distance(var_.begin(), it);
+
+		//  this.card = F.card( YIndexInF );
+		const auto y_card = card_[y_index_in_f];
+
+		// Parents is a dummy factor
+		//  Parents.var = F.var(find(F.var ~= Y));
+		//  Parents.card = F.card(find(F.var ~= Y));
+		//  Parents.val = ones(prod(Parents.card),1);
+		std::vector<uint32_t> parents_var;
+		std::vector<uint32_t> parents_card;
+		for (size_t i = 0; i < var_.size(); ++i) {
+			if (var_[i] != y) {
+				parents_var.push_back(var_[i]);
+				parents_card.push_back(card_[i]);
+			}
+		}
+		std::vector<double> parents_val(std::accumulate(parents_card.begin(), parents_card.end(), 1, std::multiplies<uint32_t>()), 1.0);
+		Factor parents{parents_var, parents_card, parents_val};
+
+		//  Fnew.var = [Parents.var Y];
+		//  Fnew.card = [Parents.card this.card];
+		std::vector<uint32_t> fnew_var(parents_var);
+		fnew_var.push_back(y);
+		std::vector<uint32_t> fnew_card(parents_card);
+		fnew_card.push_back(y_card);
+
+		Factor fnew{fnew_var, fnew_card, std::vector<double>(val_.size(),0.0)};
+
+		//  for i=1:length(F.val)
+		for (size_t i = 0; i < val_.size(); ++i) {
+			//    A = IndexToAssignment(i, F.card);
+			std::vector<uint32_t> a = IndexToAssignment(i);
+			//    y = A(YIndexInF);
+			const auto a_y = a[y_index_in_f];
+			//    A( YIndexInF ) = [];
+			a.erase(a.begin() + y_index_in_f);
+			//    A = [A y];
+			a.push_back(a_y);
+			//    j = AssignmentToIndex(A, Fnew.card);
+			const auto j = fnew.AssigmentToIndex(a);
+			//    Fnew.val(j) = F.val(i);
+			fnew.SetVal(j, val_[i]);
+		} //  end
+		
+		// For each assignment of Parents...
+		// for i=1:length(Parents.val)
+		for (size_t i = 0; i < parents_val.size(); ++i) {
+			// A = IndexToAssignment(i, Parents.card);
+			const auto a = parents.IndexToAssignment(i);
+			// SumValuesForA = 0;
+			double sum_values_for_a{ 0.0 };
+			// for j=1:this.card
+			for (size_t j = 0; j < y_card; ++j) {
+				// A_augmented = [A j];
+				auto a_augmented(a);
+				a_augmented.push_back(j);
+				// idx = AssignmentToIndex(A_augmented, Fnew.card);
+				const auto idx = fnew.AssigmentToIndex(a_augmented);
+				// SumValuesForA = SumValuesForA + Fnew.val( idx );
+				sum_values_for_a += fnew.Val()[idx];
+			} // end  
+			// for j=1:this.card
+			for (size_t j = 0; j < y_card; ++j) {
+				// A_augmented = [A j];
+				auto a_augmented(a);
+				a_augmented.push_back(j);
+				// idx = AssignmentToIndex(A_augmented, Fnew.card);
+				const auto idx = fnew.AssigmentToIndex(a_augmented);
+				// Fnew.val( idx ) = Fnew.val( idx )  / SumValuesForA;
+				fnew.SetVal(idx, fnew.Val()[idx] / sum_values_for_a);
+			} //    end  
+		} //  end
+		//  CPD = Fnew;
+		return fnew;
 	}
 
 	// FactorProduct Computes the product of two factors.
@@ -169,7 +281,7 @@ namespace Bayes {
 		const auto& mapB = diff.left_indices;
 
 		// Check for empty resultant factor
-		if (b_var.empty()) return {};
+		if (b_var.empty()) return { {},{},{std::accumulate(a.Val().begin(), a.Val().end(),0.0) } };
 
 		// Initialize B.card and B.val
 
@@ -384,7 +496,7 @@ namespace Bayes {
 
 	//	original Matlab code: Copyright(C) Daphne Koller, Stanford University, 2012
 	//	function Fnew = VariableElimination(F, Z)
-	std::vector<Factor> VariableElimination(std::vector<Factor>& f, std::vector<uint32_t>& z)
+	std::vector<Factor> VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z)
 	{
 		//	List of all variables
 		//	V = unique([F(:).var]);
@@ -446,6 +558,54 @@ namespace Bayes {
 		} //end
 		return f;
 	}
+
+	// ComputeJointDistribution Computes the joint distribution defined by a set
+	// of given factors
+	// 
+	//   Joint = ComputeJointDistribution(F) computes the joint distribution
+	//   defined by a set of given factors
+	// 
+	//   Joint is a factor that encapsulates the joint distribution given by F
+	//   F is a vector of factors (struct array) containing the factors 
+	//     defining the distribution
+	// 
+	Factor ComputeJointDistribution(const std::vector<Factor>& f) {
+		Factor joint{};
+		for (size_t i = 0; i < f.size(); ++i) {
+			//Joint = FactorProduct(Joint, F(i));
+			joint = FactorProduct(joint, f[i]);
+		} //end
+		return joint;
+	}
+
+	//ComputeMarginal Computes the marginal over a set of given variables
+	//   M = ComputeMarginal(V, F, E) computes the marginal over variables V
+	//   in the distribution induced by the set of factors F, given evidence E
+	//
+	//   M is a factor containing the marginal over variables V
+	//   V is a vector containing the variables in the marginal e.g. [1 2 3] for
+	//     X_1, X_2 and X_3.
+	//   F is a vector of factors (struct array) containing the factors 
+	//     defining the distribution
+	//   E is an N-by-2 matrix, each row being a variable/value pair. 
+	//     Variables are in the first column and values are in the second column.
+	//     If there is no evidence, pass in the empty matrix [] for E.
+	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e) {
+		// Check for empty factor list
+		if (f.empty()) return {};
+		ObserveEvidence(f, e);
+		Factor joint = ComputeJointDistribution(f);
+		Factor m = FactorMarginalization(joint, Difference(joint.Var(), v).values);
+		// M.val = M.val. / sum(M.val);
+		const auto sum = std::accumulate(m.Val().begin(), m.Val().end(), 0.0);
+		for (size_t i = 0; i < m.Val().size(); ++i) {
+			m.SetVal(i, m.Val()[i] / sum);
+		}
+		return m;
+	}
+
+
+
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v) {
 		out << "var=" << v.Var() << "card=" << v.Card() << "val=" << v.Val() << std::endl;
