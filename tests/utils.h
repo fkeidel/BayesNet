@@ -8,6 +8,7 @@
 namespace Bayes {
 	void ExpectVectorElementsNear(std::vector<double> result, std::vector<double> expected);
 	void ExpectFactorEqual(Factor actual, Factor expected);
+	void ExpectFactorsEqual(std::vector <Factor> actual, std::vector <Factor> expected);
 }
 
 #endif

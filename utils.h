@@ -24,6 +24,8 @@ namespace Bayes {
 		return out;
 	}
 
+	// sortes values in vector v and returns an index array that maps elements in the unsorted v 
+	// to elements in the sorted v
 	// https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
 	template <typename T>
 	std::vector<size_t> SortIndices(const std::vector<T>& v) {

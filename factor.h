@@ -39,6 +39,11 @@ namespace Bayes {
 		const std::vector<uint32_t>& Card() const { return card_; }
 		const std::vector<double>& Val() const { return val_; }
 
+		void SetVar(const std::vector<uint32_t>& val);
+
+		void SetCard(const std::vector<uint32_t>& card);
+		void SetCard(size_t index, uint32_t card);
+
 		void SetVal(const std::vector<double>& val);
 		void SetVal(size_t index, double val);
 
@@ -58,6 +63,8 @@ namespace Bayes {
 	std::vector<Factor> VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);
 	Factor ComputeJointDistribution(const std::vector<Factor>& f);
 	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
+	std::vector<uint32_t> UniqueVars(std::vector<Factor> f);
+	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f);
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v);
 }

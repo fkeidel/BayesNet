@@ -178,5 +178,18 @@ namespace Bayes {
 
 		ExpectFactorEqual(result.front(), marginal2);
 	}
+
+	TEST(UniqueVars, UniqueVars) {
+		Factor factor0{ {0}, {2}, {0.11, 0.89} }; // P(X_1)
+		Factor factor1{ {1,0}, {2,2}, {0.59, 0.41, 0.22, 0.78} }; // P(X_2 | X_1)
+		Factor factor2{ {2,1}, {2,2}, {0.39, 0.61, 0.06, 0.94} }; // P(X_3 | X_2)
+		std::vector<Factor> f{ factor0,factor1,factor2 };
+
+		std::vector<uint32_t> expected_unique_vars{ 0,1,2 };
+
+		const auto unique_vars{ UniqueVars(f) };
+
+		EXPECT_EQ(unique_vars, expected_unique_vars);
+	}
 }
 

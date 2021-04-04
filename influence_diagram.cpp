@@ -26,14 +26,7 @@ namespace Bayes {
 
 		//	List of all variables
 		//	V = unique([F(:).var]);
-		std::vector<uint32_t> v;
-		for (const auto& factor : f)
-		{
-			v.insert(v.end(), factor.Var().begin(), factor.Var().end());
-		}
-		std::sort(v.begin(), v.end());
-		const auto last = std::unique(v.begin(), v.end());
-		v.erase(last, v.end());
+		const auto v{ UniqueVars(f) };
 
 		// eliminate all variables
 		const auto end_factors = VariableElimination(f, v);

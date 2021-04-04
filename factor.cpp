@@ -70,6 +70,21 @@ namespace Bayes {
 		val_[AssigmentToIndex(assignment)] = value;
 	}
 
+	void Factor::SetVar(const std::vector<uint32_t>& var)
+	{
+		var_ = var;
+	}
+
+	void Factor::SetCard(const std::vector<uint32_t>& card)
+	{
+		card_ = card;
+	}
+
+	void Factor::SetCard(size_t index, uint32_t card)
+	{
+		card_[index] = card;
+	}
+
 	void Factor::SetVal(const std::vector<double>& val)
 	{
 		val_ = val;
@@ -500,29 +515,10 @@ namespace Bayes {
 	{
 		//	List of all variables
 		//	V = unique([F(:).var]);
-		std::vector<uint32_t> v;
-		for (const auto& factor : f)
-		{
-			v.insert(v.end(), factor.Var().begin(), factor.Var().end());
-		}
-		std::sort(v.begin(), v.end());
-		const auto last = std::unique(v.begin(), v.end());
-		v.erase(last, v.end());
+		const auto v{ UniqueVars(f) };
 
 		// Setting up the adjacency matrix.
-		//	edges = zeros(length(V));
-		std::vector<std::vector<uint32_t>> edges(v.size(), std::vector<uint32_t>(v.size(), 0));
-		//for i = 1:length(F)
-		for (size_t i = 0; i < f.size(); ++i) {
-			//	for j = 1 : length(F(i).var)
-			for (size_t j = 0; j < f[i].Var().size(); ++j) {
-				// for k = 1 : length(F(i).var)
-				for (size_t k = 0; k < f[i].Var().size(); ++k) {
-					// edges(F(i).var(j), F(i).var(k)) = 1;
-					edges[f[i].Var()[j]][f[i].Var()[k]] = 1;
-				} // end
-			} // end
-		} //end
+		auto edges{ SetUpAdjacencyMatrix(v,f) };
 
 		//	variablesConsidered = 0;
 		size_t variablesConsidered{ 0 };
@@ -604,8 +600,38 @@ namespace Bayes {
 		return m;
 	}
 
+	std::vector<uint32_t> UniqueVars(std::vector<Factor> f) {
+		//	V = unique([F(:).var]);
+		std::vector<uint32_t> v;
+		for (const auto& factor : f)
+		{
+			v.insert(v.end(), factor.Var().begin(), factor.Var().end());
+		}
+		std::sort(v.begin(), v.end());
+		const auto last = std::unique(v.begin(), v.end());
+		v.erase(last, v.end());
+		return v;
+	}
 
-
+	// Setting up the adjacency matrix
+	// @param v list of all variables in the adjacency matrix
+	// @param f list of factors containing the variables
+	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f) {
+		//	edges = zeros(length(V));
+		std::vector<std::vector<uint32_t>> edges(v.size(), std::vector<uint32_t>(v.size(), 0));
+		//for i = 1:length(F)
+		for (size_t i = 0; i < f.size(); ++i) {
+			//	for j = 1 : length(F(i).var)
+			for (size_t j = 0; j < f[i].Var().size(); ++j) {
+				// for k = 1 : length(F(i).var)
+				for (size_t k = 0; k < f[i].Var().size(); ++k) {
+					// edges(F(i).var(j), F(i).var(k)) = 1;
+					edges[f[i].Var()[j]][f[i].Var()[k]] = 1;
+				} // end
+			} // end
+		} //end
+		return edges;
+	}
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v) {
 		out << "var=" << v.Var() << "card=" << v.Card() << "val=" << v.Val() << std::endl;
