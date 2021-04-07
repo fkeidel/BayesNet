@@ -150,12 +150,12 @@ namespace Bayes {
 		//
 		// Setting up the cardinality for the variables since we only get a list 
 		// of factors.
-		
+
 		// C.card = zeros(1, length(V));
 		c.card = std::vector<uint32_t>(v.size(), 0);
 		//for i = 1 : length(V),
 		for (size_t i = 0; i < v.size(); ++i) {
-		//	 for j = 1 : length(F)
+			//	 for j = 1 : length(F)
 			for (size_t j = 0; j < f.size(); ++j) {
 				const auto& f_var{ f[j].Var() };
 				//	if (~isempty(find(F(j).var == i)))
@@ -187,7 +187,7 @@ namespace Bayes {
 			// Everytime you enter the loop, you look at the state of the graph and 
 			// pick the variable to be eliminated.
 			//
-			uint32_t bestClique{ 0 };
+			size_t bestClique{ 0 };
 			//	bestScore = inf;
 			uint32_t bestScore{ std::numeric_limits<uint32_t>::max() };
 			//	for i = 1:length(v)
@@ -207,7 +207,7 @@ namespace Bayes {
 			// [F, C, edges] = EliminateVar(F, C, edges, bestClique);
 			EliminateVar(f, c, edges, bestClique);
 		} //end
-		
+
 		// Pruning the tree.
 		// C = PruneTree(C);
 		PruneTree(c);
@@ -357,7 +357,7 @@ namespace Bayes {
 				}// end
 			}// end
 		}//end
-		
+
 	}
 
 	// C = PruneTree(C)
@@ -429,7 +429,7 @@ namespace Bayes {
 						}// end
 					}// end
 					// kill the edges for the clique that is to be removed.
-					
+
 					// C.edges(i,:) = 0;
 					// C.edges(:,i) = 0;
 					for (size_t e = 0; e < c.edges[i].size(); ++e) {
@@ -457,7 +457,7 @@ namespace Bayes {
 		}
 		// erase
 		c.nodes.erase(std::remove_if(c.nodes.begin(), c.nodes.end(), [](const auto& node) {return node.empty(); }), c.nodes.end());
-		
+
 		// remove all 0 rows/columns
 		std::vector < std::vector<uint32_t> > reduced_edges;
 		//if isfield(C, 'edges')
@@ -478,4 +478,304 @@ namespace Bayes {
 		//
 	}//end
 
+	//GETNEXTCLIQUES Find a pair of cliques ready for message passing
+	//   [i, j] = GETNEXTCLIQUES(P, messages) finds ready cliques in a given
+	//   clique tree, P, and a matrix of current messages. Returns indices i and j
+	//   such that clique i is ready to transmit a message to clique j.
+	//
+	//   We are doing clique tree message passing, so
+	//   do not return (i,j) if clique i has already passed a message to clique j.
+	//
+	//	 messages is a n x n matrix of passed messages, where messages(i,j)
+	// 	 represents the message going from clique i to clique j. 
+	//   This matrix is initialized in CliqueTreeCalibrate as such:
+	//      MESSAGES = repmat(struct('var', [], 'card', [], 'val', []), N, N);
+	//
+	//   If more than one message is ready to be transmitted, return 
+	//   the pair (i,j) that is numerically smallest. If you use an outer
+	//   for loop over i and an inner for loop over j, breaking when you find a 
+	//   ready pair of cliques, you will get the right answer.
+	//
+	//   If no such cliques exist, returns i = j = 0.
+	//
+	//   See also CLIQUETREECALIBRATE
+	//
+	// based on Coursera Course PGM by Daphne Koller, Stanford University, 2012
+
+	//function [i, j] = GetNextCliques(P, messages)
+	std::pair<uint32_t, uint32_t> GetNextCliques(CliqueTree c, std::vector<std::vector<Factor>> messages) {
+		// initialization
+		// you should set them to the correct values in your code
+		//i = 0;
+		//j = 0;
+
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// YOUR CODE HERE
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// for all messages from cluster i to j
+		// N = size(messages, 1);
+		const auto n = c.clique_list.size();
+		//for i = 1:N (source)
+		for (uint32_t i = 0; i < n; ++i) {
+			// for j = 1:N (target)
+			for (uint32_t j = 0; j < n; ++j) {
+				// if P.edges(i, j) == 1 && isempty(messages(i, j).var)
+				// is edge connected and empty ?
+				if ((c.edges[i][j] == 1) && (messages[i][j].Var().empty())) {
+					// have all incoming messages except from target  j been received
+					bool all_incoming_received = true;
+					for (uint32_t k = 0; k < n; ++k) {
+						if ((k != j) && (c.edges[k][i] == 1) && (messages[k][i].Var().empty())) {
+							all_incoming_received = false;
+						}
+					}
+					if (all_incoming_received) {
+						return { i,j };
+					}
+				}
+			}
+		}
+		// no clique exists
+		return { 0,0 };
+	}//end
+
+
+	//CLIQUETREECALIBRATE Performs sum-product or max-product algorithm for 
+	//clique tree calibration.
+
+	//   P = CLIQUETREECALIBRATE(P, isMax) calibrates a given clique tree, P 
+	//   according to the value of isMax flag. If isMax is 1, it uses max-sum
+	//   message passing, otherwise uses sum-product. This function 
+	//   returns the clique tree where the .val for each clique in .cliqueList
+	//   is set to the final calibrated potentials.
+	//
+	// Copyright (C) Daphne Koller, Stanford University, 2012
+
+	//function P = CliqueTreeCalibrate(P, isMax)
+	void CliqueTreeCalibrate(CliqueTree& c, bool is_max) {
+
+		// YOUR CODE HERE
+		// Number of cliques in the tree.
+		// N = length(P.cliqueList);
+		const auto n{ c.clique_list.size() };
+
+		// Setting up the messages that will be passed.
+		// MESSAGES(i,j) represents the message going from clique i to clique j. 
+		// MESSAGES = repmat(struct('var', [], 'card', [], 'val', []), N, N);
+		std::vector<std::vector<Factor>> messages(n, std::vector<Factor>(n));
+
+		// While there are ready cliques to pass messages between, keep passing
+		// messages. Use GetNextCliques to find cliques to pass messages between.
+		// Once you have clique i that is ready to send message to clique
+		// j, compute the message and put it in MESSAGES(i,j).
+		// Remember that you only need an upward pass and a downward pass.
+		//
+		// 
+		//if isMax
+		if (is_max) {
+			//  convert to log space
+			//	 for i = 1:N       
+			for (size_t i = 0; i < n; ++i) {
+				for (size_t j = 0; j < c.clique_list[i].Val().size(); ++j) {
+					// P.cliqueList(i).val = log(P.cliqueList(i).val);
+					c.clique_list[i].SetVal(j, std::log(c.clique_list[i].Val()[j]));
+				}
+			} //	 end
+			uint32_t i = 0;
+			uint32_t j = 0;
+			std::tie(i, j) = GetNextCliques(c, messages);
+			//	 as long as there a messages from source cluster i to target cluster j
+			while (i || j) {
+				// inputs = struct('var', [], 'card', [], 'val', []); 
+				// add all input messages except from target cluster j
+				Factor input{};
+				// for k = 1:N
+				for (uint32_t k = 0; k < n; ++k) {
+					// sum all input messages except from target cluster j
+					//	if P.edges(i, k) && k~=j 
+					if (c.edges[i][k] && (k != j)) {
+						//	inputs = FactoSum(inputs, MESSAGES(k, i));
+						input = FactorSum(input, messages[k][i]);
+					}// end
+				} // end
+				// add own initial potential
+				//	MESSAGES(i, j) = FactorSum(P.cliqueList(i), inputs);
+				messages[i][j] = FactorSum(c.clique_list[i], input);
+				// elimiate variables from message from i to j that are not known to target cluster j
+				//	eliminateVars = setdiff(P.cliqueList(i).var, P.cliqueList(j).var);
+				const auto eliminate_vars = Difference(c.clique_list[i].Var(), c.clique_list[j].Var()).values;
+				//	MESSAGES(i, j) = FactorMaxMarginalization(MESSAGES(i, j), eliminateVars);
+				messages[i][j] = FactorMaxMarginalization(messages[i][j], eliminate_vars);
+				//	[i, j] = GetNextCliques(P, MESSAGES);
+				// get next message
+				std::tie(i, j) = GetNextCliques(c, messages);
+			}// end
+		// else
+		} else {
+			uint32_t i = 0;
+			uint32_t j = 0;
+			std::tie(i, j) = GetNextCliques(c, messages);
+			//	 as long as there a messages from source cluster i to target cluster j
+			while (i || j) {
+				// inputs = struct('var', [], 'card', [], 'val', []); 
+				// multiply all input messages except from target cluster j
+				Factor input{};
+				// for k = 1:N
+				for (uint32_t k = 0; k < n; ++k) {
+					// multiply all input messages except from target cluster j
+					//	if P.edges(i, k) && k~=j 
+					if (c.edges[i][k] && (k != j)) {
+						//	inputs = FactorProduct(inputs, MESSAGES(k, i));
+						input = FactorProduct(input, messages[k][i]);
+					}// end
+				} // end
+				// multiply with own initial potential
+				//	MESSAGES(i, j) = FactorProduct(P.cliqueList(i), inputs);
+				messages[i][j] = FactorProduct(c.clique_list[i], input);
+				// elimiate variables from message from i to j that are not known to target cluster j
+				//	eliminateVars = setdiff(P.cliqueList(i).var, P.cliqueList(j).var);
+				const auto eliminate_vars = Difference(c.clique_list[i].Var(), c.clique_list[j].Var()).values;
+				//	MESSAGES(i, j) = FactorMarginalization(MESSAGES(i, j), eliminateVars);
+				messages[i][j] = FactorMarginalization(messages[i][j], eliminate_vars);
+				//	MESSAGES(i, j) = NormalizeFactorValues(MESSAGES(i, j));
+				NormalizeFactorValue(messages[i][j]);
+				//	[i, j] = GetNextCliques(P, MESSAGES);
+				// get next message
+				std::tie(i, j) = GetNextCliques(c, messages);
+			}// end
+		}//end
+		//
+		// Now the clique tree has been calibrated. 
+		// Compute the final potentials for the cliques and place them in P.
+		//
+		//if isMax
+		if (is_max) {
+			// for all cliques
+			//	 for i = 1:N
+			for (uint32_t i = 0; i < n; ++i) {
+				//	for k = 1:N
+				for (uint32_t k = 0; k < n; ++k) {
+					//	if P.edges(i, k)  
+					if (c.edges[i][k] == 1) {
+						// sum initial potential with all incoming messages
+						//	P.cliqueList(i) = FactorSum(P.cliqueList(i), MESSAGES(k, i));
+						c.clique_list[i] = FactorSum(c.clique_list[i], messages[k][i]);
+					}// end
+				}// end
+			}//	 end    
+		} //else
+		else {
+			// for all cliques
+			//	 for i = 1:N
+			for (uint32_t i = 0; i < n; ++i) {
+				//	for k = 1:N
+				for (uint32_t k = 0; k < n; ++k) {
+					//	if P.edges(i, k)  
+					if (c.edges[i][k] == 1) {
+						// mupltiply initial potential with all incoming messages
+						//	P.cliqueList(i) = FactorProduct(P.cliqueList(i), MESSAGES(k, i));
+						c.clique_list[i] = FactorProduct(c.clique_list[i], messages[k][i]);
+					}// end
+				}// end
+			}//	 end    
+		}//end
+	} //return
+
+	// COMPUTEEXACTMARGINALSBP Runs exact inference and returns the marginals
+	// over all the variables (if isMax == 0) or the max-marginals (if isMax == 1). 
+	// 
+	//    M = COMPUTEEXACTMARGINALSBP(F, E, isMax) takes a list of factors F,
+	//    evidence E, and a flag isMax, runs exact inference and returns the
+	//    final marginals for the variables in the network. If isMax is 1, then
+	//    it runs exact MAP inference, otherwise exact inference (sum-prod).
+	//    It returns an array of size equal to the number of variables in the 
+	//    network where M(i) represents the ith variable and M(i).val represents 
+	//    the marginals of the ith variable. 
+	// 
+	//  Copyright (C) Daphne Koller, Stanford University, 2012
+	//
+	//
+	//function M = ComputeExactMarginalsBP(F, E, isMax)
+	std::vector<Factor> ComputeExactMarginalsBP(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& evidence, bool is_max) {
+		//  initialization
+		//  you should set it to the correct value in your code
+		//M = [];
+		//                                                                       
+		//  YOUR CODE HERE
+		// 
+		//  Implement Exact and MAP Inference.
+		//                                                                       
+		//P = CreateCliqueTree(F, E);
+		CliqueTree c = CreateCliqueTree(f, evidence);
+		//P = CliqueTreeCalibrate(P, isMax);
+		CliqueTreeCalibrate(c, is_max);
+		//vars = [];
+		std::vector<uint32_t> vars{};
+		//for i = 1:length(P.cliqueList)
+		for (uint32_t i = 0; i < c.clique_list.size(); ++i) {
+			//  vars = union(vars, P.cliqueList(i).var);
+			vars = Union(vars, c.clique_list[i].Var()).values;
+		}//end
+		//
+		//M = repmat(struct('var', 0, 'card', 0, 'val', []), length(vars), 1);
+		std::vector<Factor> m(vars.size());
+		//for i = 1:length(vars)
+		for (uint32_t i = 0; i < vars.size(); ++i) {
+			//	var = vars(i);   the var for which we compute the marginals
+			const auto& var = vars[i];
+			//    for j = 1:length(P.cliqueList)
+			for (uint32_t j = 0; j < c.clique_list.size(); ++j) {
+			// if ismember(var, P.cliqueList(j).var)
+				if (!Intersection({ var }, c.clique_list[j].Var()).values.empty()) {
+					// if isMax
+					if (is_max) {
+						// M(var) = FactorMaxMarginalization(P.cliqueList(j), setdiff(P.cliqueList(j).var, [var]));
+						m[var] = FactorMaxMarginalization(c.clique_list[j], Difference(c.clique_list[j].Var(), { var }).values);
+					} // else
+					else {
+						// M(var) = FactorMarginalization(P.cliqueList(j), setdiff(P.cliqueList(j).var, [var]));
+						m[var] = FactorMarginalization(c.clique_list[j], Difference(c.clique_list[j].Var(), { var }).values);
+						// M(var) = NormalizeFactorValues(M(var));
+						NormalizeFactorValue(m[var]);
+					}// end
+					// break;
+					break;
+				} // end
+			}// end
+		}//end
+		return m;
+	}//end
+
+	// MAXDECODING Finds the best assignment for each variable from the marginals
+	// passed in. Returns A such that A(i) returns the index of the best
+	// instantiation for variable i.
+	// 
+	//    For instance: Let's say we have two variables 1 and 2. 
+	//    Marginals for 1 = [0.1, 0.3, 0.6]
+	//    Marginals for 2 = [0.92, 0.08]
+	//    A(1) = 3, A(2) = 1.
+	// 
+	//    See also COMPUTEEXACTMARGINALSBP
+	//
+	//  based on Coursera PGM course by Daphne Koller, Stanford Univerity, 2012
+	//
+	//function A = MaxDecoding( M )
+	std::vector<uint32_t> MaxDecoding(const std::vector<Factor>& m) {
+		//
+		//  Compute the best assignment for variables in the network.
+		//A = zeros(1, length(M));
+		std::vector<uint32_t> a(m.size(), 0);
+		//for i = 1:length(M)
+		for (uint32_t i = 0; i < m.size(); ++i) { // Iterate through variables
+			// [maxVal, idx] = max(M(i).val);
+			const auto result = std::max_element(m[i].Val().begin(), m[i].Val().end());
+			// A(i) = idx;
+			a[i] = std::distance(m[i].Val().begin(), result);
+		} //end
+		return a;//
+	}//end
+
+
 }
+	
+	

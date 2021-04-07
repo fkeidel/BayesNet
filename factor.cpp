@@ -60,7 +60,7 @@ namespace Bayes {
 		return assignment;
 	}
 
-	double Factor::GetValueOfAssignment(const std::vector<uint32_t>& assignment)
+	double Factor::GetValueOfAssignment(const std::vector<uint32_t>& assignment) const
 	{
 		return val_[AssigmentToIndex(assignment)];
 	}
@@ -193,7 +193,8 @@ namespace Bayes {
 	//
 	// original Matlab sources: Copyright (C) Daphne Koller, Stanford University, 2012
 
-	Factor FactorProduct(const Factor& a, const Factor& b) {
+	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op)
+	{
 		// Check for empty factors
 		if (a.IsEmpty()) return b;
 		if (b.IsEmpty()) return a;
@@ -211,7 +212,19 @@ namespace Bayes {
 			}
 		}
 
-		// Set the variables of c
+		// Set the variables of c and construct the mapping between variables in A and B and variables in C.
+		// In the code below, we have that
+		//	
+		//	mapA(i) = j, if and only if, A.var(i) == C.var(j)
+		//	
+		// and similarly
+		//	
+		// mapB(i) = j, if and only if, B.var(i) == C.var(j)
+		//	
+		// For example, if A.var = [3 1 4], B.var = [4 5], and C.var = [1 3 4 5],
+		//	then, mapA = [2 1 3] and mapB = [3 4]; mapA(1) = 2 because A.var(1) = 3
+		//	and C.var(2) = 3, so A.var(1) == C.var(2).
+
 		SetOperationResult<uint32_t> union_result = Union(a.Var(), b.Var());
 		const auto& c_var = union_result.values;
 		const auto& mapA = union_result.left_indices;
@@ -263,13 +276,36 @@ namespace Bayes {
 		// C.val = A.val(indxA).*B.val(indxB);
 		std::vector<double> c_values;
 		for (size_t i = 0; i < assignments_size; ++i) {
-			c_values.push_back(a.Val()[indxA[i]] * b.Val()[indxB[i]]);
+			c_values.push_back(op(a.Val()[indxA[i]], b.Val()[indxB[i]]));
 		}
 
 		c.SetVal(c_values);
 
 		return c;
 	}
+
+	Factor FactorProduct(const Factor& a, const Factor& b) {
+		return FactorArithmetic(a, b, FactorValueMultiply{});
+	}
+
+	//	 FactorSum Computes the sum of two factors.
+	//   C = FactorSum(A,B) computes the sum of two factors, A and B,
+	//   where each factor is defined over a set of variables with given dimension.
+	//   The factor data structure has the following fields:
+	//       .var    Vector of variables in the factor, e.g. [1 2 3]
+	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
+	//       .val    Value table of size prod(.card) -- values should be the
+	//               logs of the true values
+	//
+	//   See also FactorMaxMarginalization.m, IndexToAssignment.m, and
+	//   AssignmentToIndex.m
+	//
+	// based on Coursera PGM course by Daphne Koller, Stanford Univerity, 2012
+	//
+	// function C = FactorSum(A, B)
+	Factor FactorSum(const Factor& a, const Factor& b) {
+		return FactorArithmetic(a, b, FactorValueAdd{});
+	} //end
 
 	// FactorMarginalization Sums given variables out of a factor.
 	//   b = FactorMarginalization(a,v) computes the factor with the variables
@@ -336,6 +372,89 @@ namespace Bayes {
 		for (size_t i = 0; i < a.Val().size(); ++i) {
 			b_val[indxB[i]] = b_val[indxB[i]] + a.Val()[i];
 		}
+
+		b.SetVal(b_val);
+
+		return b;
+	}
+
+	// FactorMaxMarginalization Takes the max of given variables when marginalizing out of a factor.
+	//   B = FactorMaxMarginalization(A,V) takes in a factor and a set of variables to
+	//   marginalize out. For each assignment to the remaining variables, it finds the maximum
+	//   factor value over all possible assignments to the marginalized variables.
+	//	  The factor data structure has the following fields:
+	//       .var    Vector of variables in the factor, e.g. [1 2 3]
+	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
+	//       .val    Value table of size prod(.card)
+	//
+	//   The resultant factor should have at least one variable remaining or this
+	//   function will throw an error.
+	// 
+	//   See also FactorProduct.m, IndexToAssignment.m, and AssignmentToIndex.m
+	//
+	// Based on Coursera PGM course by Daphne Koller, Stanford Univerity, 2012
+	//
+	//function B = FactorMaxMarginalization(A, V)
+	Factor FactorMaxMarginalization(const Factor& a, const std::vector<uint32_t>& v)
+	{
+		// Check for empty factor or variable list
+		if (a.Var().empty() || v.empty()) return a;
+
+		// Construct the output factor over A.var \ v (the variables in A.var that are not in v)
+		SetOperationResult<uint32_t> diff = Difference(a.Var(), v);
+		const auto& b_var = diff.values;
+		const auto& mapB = diff.left_indices;
+
+		// Check for empty resultant factor
+		assert(("resultant factor is empty", !b_var.empty()));
+
+		// Initialize B.card and B.val
+
+		std::vector<uint32_t> b_card(b_var.size(), 0);
+		// B.card = A.card(mapB);
+		for (size_t i = 0; i < mapB.size(); ++i) {
+			b_card[i] = a.Card()[mapB[i]];
+		}
+
+		// B.val = zeros(1, prod(B.card));
+		// b_val.size = prod(B.card)
+		const auto b_val_size = std::accumulate(b_card.begin(), b_card.end(), 1, std::multiplies<uint32_t>());
+		std::vector<double> b_val(b_val_size, 0);
+
+		// assignments = IndexToAssignment(1:length(A.val), A.card);
+		std::vector<std::vector<uint32_t>> assignments;
+		for (size_t i = 0; i < a.Val().size(); ++i) {
+			assignments.push_back(a.IndexToAssignment(i));
+		}
+
+		Factor b{ b_var, b_card, {} };
+
+		// indxB = AssignmentToIndex(assignments(:, mapB), B.card);
+		std::vector<size_t> indxB;
+		for (size_t i = 0; i < a.Val().size(); ++i) {
+			std::vector<uint32_t> assignment;
+			for (size_t j = 0; j < mapB.size(); ++j) {
+				assignment.push_back(assignments[i][mapB[j]]);
+			}
+			indxB.push_back(b.AssigmentToIndex(assignment));
+		}
+
+		// Correctly populate the factor values of B
+		// for i = 1:length(A.val)
+		for (size_t i = 0; i < a.Val().size(); ++i) {
+			// Iterate through the values of A
+			// if B.val(indxB(i)) == 0
+			if (b_val[indxB[i]] == 0) {
+				// B has not been initialized yet
+				//        B.val(indxB(i)) = A.val(i);
+				b_val[indxB[i]] = a.Val()[i];
+			//    else
+			}
+			else {
+				// B.val(indxB(i)) = max([B.val(indxB(i)), A.val(i)]);
+				b_val[indxB[i]] = std::max(b_val[indxB[i]], a.Val()[i]);
+			}//    end
+		} //end;
 
 		b.SetVal(b_val);
 
@@ -538,7 +657,7 @@ namespace Bayes {
 				//  idx = Z(i);
 				const auto idx = z[i];
 				//	score = sum(edges(idx, :));
-				const auto score = std::accumulate(edges[idx].begin(), edges[idx].end(), 0);
+				const auto score = std::accumulate(edges[idx].begin(), edges[idx].end(), 0U);
 				//	if score > 0 && score < bestScore
 				if ((score > 0) && (score < bestScore)) {
 					//	bestScore = score;
@@ -631,6 +750,24 @@ namespace Bayes {
 			} // end
 		} //end
 		return edges;
+	}
+
+	//function F = NormalizeFactorValue( F )
+	void NormalizeFactorValue(Factor& f) {
+		const auto sum = std::accumulate(f.Val().begin(), f.Val().end(), 0.0);
+		// ThisFactor.val = ThisFactor.val / sum(ThisFactor.val);
+		// F(i) = ThisFactor;
+		std::vector<double> normalized(f.Val());
+		std::for_each(normalized.begin(), normalized.end(), [sum](auto& val) { val /= sum; });
+		f.SetVal(normalized);
+	}
+
+	//function F = NormalizeFactorValues( F )
+	void NormalizeFactorValues(std::vector<Factor>& f) {
+		//  for i=1:length(F)
+		for (auto& factor : f) {
+			NormalizeFactorValue(factor);
+		}//  end
 	}
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v) {

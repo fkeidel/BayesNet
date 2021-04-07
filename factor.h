@@ -8,6 +8,22 @@
 
 namespace Bayes {
 
+	struct FactorValueOp {
+		virtual double operator()(const double lhs, const double rhs) const = 0;
+	};
+
+	struct FactorValueMultiply : FactorValueOp {
+		double operator()(const double lhs, const double rhs) const override {
+			return lhs * rhs;
+		}
+	};
+
+	struct FactorValueAdd : FactorValueOp {
+		double operator()(const double lhs, const double rhs) const override {
+			return lhs + rhs;
+		}
+	};
+
 	class Factor {
 	public:
 		Factor() = default;
@@ -16,7 +32,7 @@ namespace Bayes {
 		std::size_t AssigmentToIndex(const std::vector<uint32_t>& assignment)  const;
 		std::vector<uint32_t> IndexToAssignment(size_t index) const;
 
-		double GetValueOfAssignment(const std::vector<uint32_t>& assignment);
+		double GetValueOfAssignment(const std::vector<uint32_t>& assignment) const;
 		void SetValueOfAssignment(const std::vector<uint32_t>& assignment, double value);
 
 		bool operator==(const Factor& rhs) const
@@ -57,14 +73,19 @@ namespace Bayes {
 	};
 
 	Factor FactorProduct(const Factor& a, const Factor& b);
+	Factor FactorSum(const Factor& a, const Factor& b);
+	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op);
 	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& var);
-	void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
+	Factor FactorMaxMarginalization(const Factor& a, const std::vector<uint32_t>& v);
+		void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
 	std::vector<Factor> VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);
 	Factor ComputeJointDistribution(const std::vector<Factor>& f);
 	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f);
 	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f);
+	void NormalizeFactorValue(Factor& f);
+	void NormalizeFactorValues(std::vector<Factor>& f);
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v);
 }
