@@ -22,6 +22,9 @@ include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 ################################
 # Unit Tests
 ################################
-add_executable( UnitTests "tests/factor_unit_tests.cpp"  "tests/utils_unit_tests.cpp" "tests/influence_diagram_test.cpp" "tests/utils.h" "tests/utils.cpp" "tests/clique_tree_test.cpp")
-target_link_libraries(UnitTests gtest gtest_main BayesNet)
-add_test( NAME UnitTests COMMAND UnitTests )
+add_subdirectory(tests)
+
+################################
+# Examples
+################################
+add_subdirectory(examples)

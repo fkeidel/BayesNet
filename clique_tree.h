@@ -1,3 +1,6 @@
+// based on Coursera course 'Probabilistic Graphical Models' by Daphne Koller, Stanford University
+// see https://www.coursera.org/specializations/probabilistic-graphical-models
+
 #ifndef CLIQUE_TREE_H
 #define CLIQUE_TREE_H
 

@@ -1,3 +1,6 @@
+// based on Coursera course 'Probabilistic Graphical Models' by Daphne Koller, Stanford University
+// see https://www.coursera.org/specializations/probabilistic-graphical-models
+
 #include "factor.h"
 #include <numeric>
 #include <iterator>
@@ -98,7 +101,6 @@ namespace Bayes {
 	// function [CPD] = CPDFromFactor(F, Y)
 	//  Reorder the var, card and val fields of Fnew so that the last var is the 
 	//  child variable.
-	// original Matlab code: Copyright (C) Daphne Koller, Stanford University, 2012
 	Factor Factor::CPD(uint32_t y) {
 		//  YIndexInF = find(F.var == Y);
 		const auto& it = std::find(var_.begin(), var_.end(), y);
@@ -156,42 +158,29 @@ namespace Bayes {
 			// SumValuesForA = 0;
 			double sum_values_for_a{ 0.0 };
 			// for j=1:this.card
-			for (size_t j = 0; j < y_card; ++j) {
+			for (uint32_t j = 0; j < y_card; ++j) {
 				// A_augmented = [A j];
 				auto a_augmented(a);
 				a_augmented.push_back(j);
 				// idx = AssignmentToIndex(A_augmented, Fnew.card);
 				const auto idx = fnew.AssigmentToIndex(a_augmented);
 				// SumValuesForA = SumValuesForA + Fnew.val( idx );
-				sum_values_for_a += fnew.Val()[idx];
+				sum_values_for_a += fnew.Val(idx);
 			} // end  
 			// for j=1:this.card
-			for (size_t j = 0; j < y_card; ++j) {
+			for (uint32_t j = 0; j < y_card; ++j) {
 				// A_augmented = [A j];
 				auto a_augmented(a);
 				a_augmented.push_back(j);
 				// idx = AssignmentToIndex(A_augmented, Fnew.card);
 				const auto idx = fnew.AssigmentToIndex(a_augmented);
 				// Fnew.val( idx ) = Fnew.val( idx )  / SumValuesForA;
-				fnew.SetVal(idx, fnew.Val()[idx] / sum_values_for_a);
+				fnew.SetVal(idx, fnew.Val(idx) / sum_values_for_a);
 			} //    end  
 		} //  end
 		//  CPD = Fnew;
 		return fnew;
 	}
-
-	// FactorProduct Computes the product of two factors.
-	//   c = FactorProduct(a,b) computes the product between two factors, a and b,
-	//   where each factor is defined over a set of variables with given dimension.
-	//   The factor data structure has the following fields:
-	//       .var    Vector of variables in the factor, e.g. [1 2 3]
-	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
-	//       .val    Value table of size prod(.card)
-	//
-	//   See also FactorMarginalization, Factor::IndexToAssignment, and
-	//   Factor::AssignmentToIndex
-	//
-	// original Matlab sources: Copyright (C) Daphne Koller, Stanford University, 2012
 
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op)
 	{
@@ -208,7 +197,7 @@ namespace Bayes {
 			// assert(all(A.card(iA) == B.card(iB)))
 			for (size_t i = 0; i < intersection.values.size(); ++i)
 			{
-				assert(("Dimensionality mismatch in factors", a.Card()[iA[i]] == b.Card()[iB[i]]));
+				assert(("Dimensionality mismatch in factors", a.Card(iA[i]) == b.Card(iB[i])));
 			}
 		}
 
@@ -234,11 +223,11 @@ namespace Bayes {
 		std::vector<uint32_t> c_card(c_var.size(), 0);  // C.card = zeros(1, length(C.var));
 		// C.card(mapA) = A.card;
 		for (size_t i = 0; i < mapA.size(); ++i) {
-			c_card[mapA[i]] = a.Card()[i];
+			c_card[mapA[i]] = a.Card(i);
 		}
 		// C.card(mapB) = B.card;
 		for (size_t i = 0; i < mapB.size(); ++i) {
-			c_card[mapB[i]] = b.Card()[i];
+			c_card[mapB[i]] = b.Card(i);
 		}
 
 		Factor c{ union_result.values,c_card, {} };
@@ -276,13 +265,24 @@ namespace Bayes {
 		// C.val = A.val(indxA).*B.val(indxB);
 		std::vector<double> c_values;
 		for (size_t i = 0; i < assignments_size; ++i) {
-			c_values.push_back(op(a.Val()[indxA[i]], b.Val()[indxB[i]]));
+			c_values.push_back(op(a.Val(indxA[i]), b.Val(indxB[i])));
 		}
 
 		c.SetVal(c_values);
 
 		return c;
 	}
+
+	// FactorProduct Computes the product of two factors.
+	//   c = FactorProduct(a,b) computes the product between two factors, a and b,
+	//   where each factor is defined over a set of variables with given dimension.
+	//   The factor data structure has the following fields:
+	//       .var    Vector of variables in the factor, e.g. [1 2 3]
+	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
+	//       .val    Value table of size prod(.card)
+	//
+	//   See also FactorMarginalization, Factor::IndexToAssignment, and
+	//   Factor::AssignmentToIndex
 
 	Factor FactorProduct(const Factor& a, const Factor& b) {
 		return FactorArithmetic(a, b, FactorValueMultiply{});
@@ -318,8 +318,6 @@ namespace Bayes {
 	//   function will throw an error.
 	// 
 	//   See also FactorProduct, Factor::IndexToAssignment, and Factor::AssignmentToIndex
-	//
-	// original Matlab code: Copyright (C) Daphne Koller, Stanford University, 2012
 
 	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& v)
 	{
@@ -339,7 +337,7 @@ namespace Bayes {
 		std::vector<uint32_t> b_card(b_var.size(), 0);
 		// B.card = A.card(mapB);
 		for (size_t i = 0; i < mapB.size(); ++i) {
-			b_card[i] = a.Card()[mapB[i]];
+			b_card[i] = a.Card(mapB[i]);
 		}
 
 		// B.val = zeros(1, prod(B.card));
@@ -370,7 +368,7 @@ namespace Bayes {
 		//	B.val(indxB(i)) = B.val(indxB(i)) + A.val(i);
 		// end;
 		for (size_t i = 0; i < a.Val().size(); ++i) {
-			b_val[indxB[i]] = b_val[indxB[i]] + a.Val()[i];
+			b_val[indxB[i]] = b_val[indxB[i]] + a.Val(i);
 		}
 
 		b.SetVal(b_val);
@@ -413,7 +411,7 @@ namespace Bayes {
 		std::vector<uint32_t> b_card(b_var.size(), 0);
 		// B.card = A.card(mapB);
 		for (size_t i = 0; i < mapB.size(); ++i) {
-			b_card[i] = a.Card()[mapB[i]];
+			b_card[i] = a.Card(mapB[i]);
 		}
 
 		// B.val = zeros(1, prod(B.card));
@@ -447,12 +445,12 @@ namespace Bayes {
 			if (b_val[indxB[i]] == 0) {
 				// B has not been initialized yet
 				//        B.val(indxB(i)) = A.val(i);
-				b_val[indxB[i]] = a.Val()[i];
+				b_val[indxB[i]] = a.Val(i);
 			//    else
 			}
 			else {
 				// B.val(indxB(i)) = max([B.val(indxB(i)), A.val(i)]);
-				b_val[indxB[i]] = std::max(b_val[indxB[i]], a.Val()[i]);
+				b_val[indxB[i]] = std::max(b_val[indxB[i]], a.Val(i));
 			}//    end
 		} //end;
 
@@ -461,7 +459,7 @@ namespace Bayes {
 		return b;
 	}
 
-//ObserveEvidence Modify a vector of factors given some evidence.
+// ObserveEvidence Modify a vector of factors given some evidence.
 //  F = ObserveEvidence(F, E) sets all entries in the vector of factors, F,
 //  that are not consistent with the evidence, E, to zero. F is a vector of
 //  factors, each a data structure with the following fields:
@@ -472,9 +470,7 @@ namespace Bayes {
 //    Variables are in the first column and values are in the second column.
 //  NOTE - DOES NOT RENORMALIZE THE FACTOR VALUES 
 //
-// original Matlab code: Copyright (C) Daphne Koller, Stanford University, 2012
-//
-//function F = ObserveEvidence(F, E, normalize)
+// function F = ObserveEvidence(F, E, normalize)
 	void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e)
 	{
 		//  Iterate through all evidence
@@ -501,7 +497,7 @@ namespace Bayes {
 					//	if (x > F(j).card(indx) || x < 0 ),
 					//	  error(['Invalid evidence, X_', int2str(v), ' = ', int2str(x)]);
 					//	end;
-					assert(("Invalid evidence", x < f[j].Card()[indx]));
+					assert(("Invalid evidence", x < f[j].Card(indx)));
 
 					//	Adjust the factor F(j) to account for observed evidence
 					//	For each value (1-1 map between assignment and values)
@@ -536,8 +532,6 @@ namespace Bayes {
 	//	F = list of factors
 	//	E = adjacency matrix for variables
 	//	Z = variable to eliminate
-
-	//	original Matlab code: Copyright(C) Daphne Koller, Stanford University, 2012
 
 	//	function[newF E] = EliminateVar(F, E, Z)
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z)
@@ -628,9 +622,8 @@ namespace Bayes {
 	//	F = list of factors
 	//	Z = list of variables to eliminate
 
-	//	original Matlab code: Copyright(C) Daphne Koller, Stanford University, 2012
 	//	function Fnew = VariableElimination(F, Z)
-	std::vector<Factor> VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z)
+	std::vector<Factor> VariableElimination(std::vector<Factor> f, const std::vector<uint32_t>& z)
 	{
 		//	List of all variables
 		//	V = unique([F(:).var]);
@@ -714,7 +707,7 @@ namespace Bayes {
 		// M.val = M.val. / sum(M.val);
 		const auto sum = std::accumulate(m.Val().begin(), m.Val().end(), 0.0);
 		for (size_t i = 0; i < m.Val().size(); ++i) {
-			m.SetVal(i, m.Val()[i] / sum);
+			m.SetVal(i, m.Val(i) / sum);
 		}
 		return m;
 	}
@@ -745,7 +738,7 @@ namespace Bayes {
 				// for k = 1 : length(F(i).var)
 				for (size_t k = 0; k < f[i].Var().size(); ++k) {
 					// edges(F(i).var(j), F(i).var(k)) = 1;
-					edges[f[i].Var()[j]][f[i].Var()[k]] = 1;
+					edges[f[i].Var(j)][f[i].Var(k)] = 1;
 				} // end
 			} // end
 		} //end

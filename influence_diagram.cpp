@@ -30,7 +30,7 @@ namespace Bayes {
 
 		// eliminate all variables
 		const auto end_factors = VariableElimination(f, v);
-		const auto eu = end_factors[0].Val()[0];
+		const auto eu = end_factors[0].Val(0);
 		return eu;
 	}	//end
 
@@ -54,7 +54,7 @@ namespace Bayes {
 		f.push_back(u);
 
 		//	List of all random variables = List of all variables - decision variable (expect only one)
-		uint32_t d = id.decision_factors[0].Var()[0];
+		uint32_t d = id.decision_factors[0].Var(0);
 		std::vector<uint32_t> x;
 		for (const auto& factor : id.random_factors)
 		{
@@ -120,21 +120,21 @@ namespace Bayes {
 		// decision variable has parents
 
 		//  DIndexInEUF = find(EUF.var == D);
-		const auto& it = std::find(euf.Var().begin(), euf.Var().end(), d.Var()[0]); // expect decision variable as first entry in d
+		const auto& it = std::find(euf.Var().begin(), euf.Var().end(), d.Var(0)); // expect decision variable as first entry in d
 		assert(("d must be in EUF", it != euf.Var().end()));
 		const auto d_index_in_euf = std::distance(euf.Var().begin(), it);
 
 		//  D.card = EUF.card( dIndexInEUF );
-		const auto d_card = euf.Card()[d_index_in_euf];
+		const auto d_card = euf.Card(d_index_in_euf);
 
-		const auto parents_diff_result = Difference(euf.Var(), { d.Var()[0] });
+		const auto parents_diff_result = Difference(euf.Var(), { d.Var(0) });
 		const auto parents_var{ parents_diff_result.values };
 		const auto mapP2Euf{ parents_diff_result.left_indices };
 
 		// Parents is a dummy factor to create parent assignments
 		std::vector<uint32_t> parents_card(parents_var.size(), 0);
 		for (size_t i = 0; i < parents_var.size(); ++i) {
-			parents_card[i] = euf.Card()[mapP2Euf[i]];
+			parents_card[i] = euf.Card(mapP2Euf[i]);
 
 		}
 		std::vector<double> parents_val(std::accumulate(parents_card.begin(), parents_card.end(), 1, std::multiplies<uint32_t>()), 0.0);
@@ -158,10 +158,10 @@ namespace Bayes {
 			double max_value{ 0.0 };
 			size_t idx_euf_max_value{ 0 };
 			// for j=1:d.card
-			for (size_t j = 0; j < d_card; ++j) {
+			for (uint32_t j = 0; j < d_card; ++j) {
 				a_euf[d_index_in_euf] = j;
 				const auto idx = euf.AssigmentToIndex(a_euf);
-				const auto value = euf.Val()[idx];
+				const auto value = euf.Val(idx);
 				if (value > max_value) {
 					max_value = value;
 					idx_euf_max_value = idx;
@@ -169,7 +169,7 @@ namespace Bayes {
 			} // end
 			// set corresponding entry in decison rule
 			const auto a_euf_max = euf.IndexToAssignment(idx_euf_max_value);
-			std::vector<uint32_t> a_d(d.Var().size(), 0);
+			std::vector<uint32_t> a_d(d.Var().size(), 0U);
 			for (size_t j = 0; j < d.Var().size(); ++j) {
 				// a_euf -> a_d
 				a_d[mapD[mapEuf[j]]] = a_euf_max[j];
@@ -180,7 +180,7 @@ namespace Bayes {
 		// eliminate all variables
 		const auto factor_product = FactorProduct(odr, euf);
 		const auto end_factor = VariableElimination(std::vector<Factor>{ factor_product }, euf.Var());
-		meu = end_factor[0].Val()[0];
+		meu = end_factor[0].Val(0);
 
 		return {meu, odr};
 	}

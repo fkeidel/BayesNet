@@ -1,3 +1,6 @@
+// based on Coursera course 'Probabilistic Graphical Models' by Daphne Koller, Stanford University
+// see https://www.coursera.org/specializations/probabilistic-graphical-models
+
 #include "clique_tree.h"
 #include <factor.cpp>
 #include <unordered_map>
@@ -5,8 +8,8 @@
 
 namespace Bayes {
 
-	//COMPUTEINITIALPOTENTIALS Sets up the cliques in the clique tree that is
-	//passed in as a parameter.
+	// COMPUTEINITIALPOTENTIALS Sets up the cliques in the clique tree that is
+	// passed in as a parameter.
 	//
 	//   P = COMPUTEINITIALPOTENTIALS(C) Takes the clique tree skeleton C which is a
 	//   struct with three fields:
@@ -21,9 +24,6 @@ namespace Bayes {
 	//   from factorList assigned to each clique. Where the .val of each clique
 	//   is initialized to the initial potential of that clique.
 	//   - edges: represents the adjacency matrix of the tree. 
-	//
-	// based on Coursera Course 'PGM' by Daphne Koller, Stanford University, 2012
-
 
 	// function P = ComputeInitialPotentials(C)
 	CliqueTree ComputeInitialPotentials(CliqueTree c) {
@@ -63,7 +63,7 @@ namespace Bayes {
 
 		// Assign factor to a clique
 		// alpha=zeros(length(C.factorList),1);			
-		std::vector<uint32_t> alpha(c.factor_list.size(), 0);
+		std::vector<size_t> alpha(c.factor_list.size(), 0);
 		// for k=1:length(C.factorList)
 		for (size_t k = 0; k < c.factor_list.size(); ++k) {
 			// for i=1:N
@@ -127,8 +127,8 @@ namespace Bayes {
 		return p;
 	}
 
-	//CREATECLIQUETREE Takes in a list of factors F, Evidence and returns a 
-	//clique tree after calling ComputeInitialPotentials at the end.
+	// CREATECLIQUETREE Takes in a list of factors F, Evidence and returns a 
+	// clique tree after calling ComputeInitialPotentials at the end.
 	//
 	//   P = CREATECLIQUETREE(F, Evidence) Takes a list of factors and creates a clique
 	//   tree. The value of the cliques should be initialized to 
@@ -137,11 +137,8 @@ namespace Bayes {
 	//   - .edges: Contains indices of the nodes that have edges between them.
 	//   - .cliqueList: Contains the list of factors used to build the Clique
 	//   tree.
-	//
-	// Copyright (C) Daphne Koller, Stanford University, 2012
-	//
-	//
-	//function P = CreateCliqueTree(F, Evidence)
+
+	// function P = CreateCliqueTree(F, Evidence)
 	CliqueTree CreateCliqueTree(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& evidence) {
 		//C.nodes = {};
 		CliqueTree c{};
@@ -163,7 +160,7 @@ namespace Bayes {
 				if (it != f_var.end()) {
 					const auto ind = std::distance(f_var.begin(), it);
 					// C.card(i) = F(j).card(find(F(j).var == i));
-					c.card[i] = f[j].Card()[ind];
+					c.card[i] = f[j].Card(ind);
 					// break;
 					break;
 				}//	end
@@ -187,13 +184,13 @@ namespace Bayes {
 			// Everytime you enter the loop, you look at the state of the graph and 
 			// pick the variable to be eliminated.
 			//
-			size_t bestClique{ 0 };
+			uint32_t bestClique{ 0 };
 			//	bestScore = inf;
 			uint32_t bestScore{ std::numeric_limits<uint32_t>::max() };
 			//	for i = 1:length(v)
-			for (size_t i = 0; i < v.size(); ++i) {
+			for (uint32_t i = 0; i < v.size(); ++i) {
 				//	score = sum(edges(i, :));
-				const auto score = std::accumulate(edges[i].begin(), edges[i].end(), 0);
+				const auto score = std::accumulate(edges[i].begin(), edges[i].end(), 0U);
 				//	if score > 0 && score < bestScore
 				if ((score > 0) && (score < bestScore)) {
 					//	bestScore = score;
@@ -238,8 +235,6 @@ namespace Bayes {
 	// 	C = clique creation data
 	//	E = adjacency matrix for variables
 	//	Z = variable to eliminate
-	//
-	// Copyright (C) Daphne Koller, Stanford University, 2012
 
 	//function [newF C E] = EliminateVar(F, C, E, Z)
 	void EliminateVar(std::vector<Factor>& f, CliqueTree& c, std::vector<std::vector<uint32_t>>& e, uint32_t z)
@@ -254,7 +249,7 @@ namespace Bayes {
 		// for i = 1:length(F)
 		for (size_t i = 0; i < f.size(); ++i) {
 			//if any(F(i).var == Z)
-			if (std::any_of(f[i].Var().begin(), f[i].Var().end(), [z](uint32_t i) {return i == z; })) {
+			if (std::any_of(f[i].Var().begin(), f[i].Var().end(), [z](uint32_t var) {return var == z; })) {
 				// useFactors = [useFactors i];
 				useFactors.push_back(i);
 				// scope = union(scope, F(i).var);
@@ -373,9 +368,7 @@ namespace Bayes {
 	// edge between ABE and all of AB's other neighbors. This maintains the
 	// running intersection property and gives us a more compact clique tree
 	// which looks like: ABE -- AD.
-	//
-	// original Matlab code: Copyright (C) Daphne Koller, Stanford University, 2012
-	//
+
 	// function C = PruneTree(C)
 	void PruneTree(CliqueTree& c) {
 		//toRemove = [];
@@ -540,16 +533,14 @@ namespace Bayes {
 	}//end
 
 
-	//CLIQUETREECALIBRATE Performs sum-product or max-product algorithm for 
-	//clique tree calibration.
+	// CLIQUETREECALIBRATE Performs sum-product or max-product algorithm for 
+	// clique tree calibration.
 
 	//   P = CLIQUETREECALIBRATE(P, isMax) calibrates a given clique tree, P 
 	//   according to the value of isMax flag. If isMax is 1, it uses max-sum
 	//   message passing, otherwise uses sum-product. This function 
 	//   returns the clique tree where the .val for each clique in .cliqueList
 	//   is set to the final calibrated potentials.
-	//
-	// Copyright (C) Daphne Koller, Stanford University, 2012
 
 	//function P = CliqueTreeCalibrate(P, isMax)
 	void CliqueTreeCalibrate(CliqueTree& c, bool is_max) {
@@ -578,7 +569,7 @@ namespace Bayes {
 			for (size_t i = 0; i < n; ++i) {
 				for (size_t j = 0; j < c.clique_list[i].Val().size(); ++j) {
 					// P.cliqueList(i).val = log(P.cliqueList(i).val);
-					c.clique_list[i].SetVal(j, std::log(c.clique_list[i].Val()[j]));
+					c.clique_list[i].SetVal(j, std::log(c.clique_list[i].Val(j)));
 				}
 			} //	 end
 			uint32_t i = 0;
@@ -691,11 +682,8 @@ namespace Bayes {
 	//    It returns an array of size equal to the number of variables in the 
 	//    network where M(i) represents the ith variable and M(i).val represents 
 	//    the marginals of the ith variable. 
-	// 
-	//  Copyright (C) Daphne Koller, Stanford University, 2012
-	//
-	//
-	//function M = ComputeExactMarginalsBP(F, E, isMax)
+
+	// function M = ComputeExactMarginalsBP(F, E, isMax)
 	std::vector<Factor> ComputeExactMarginalsBP(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& evidence, bool is_max) {
 		//  initialization
 		//  you should set it to the correct value in your code
@@ -770,7 +758,7 @@ namespace Bayes {
 			// [maxVal, idx] = max(M(i).val);
 			const auto result = std::max_element(m[i].Val().begin(), m[i].Val().end());
 			// A(i) = idx;
-			a[i] = std::distance(m[i].Val().begin(), result);
+			a[i] = static_cast<uint32_t>(std::distance(m[i].Val().begin(), result));
 		} //end
 		return a;//
 	}//end

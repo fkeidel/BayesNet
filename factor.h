@@ -1,3 +1,6 @@
+// based on Coursera course 'Probabilistic Graphical Models' by Daphne Koller, Stanford University
+// see https://www.coursera.org/specializations/probabilistic-graphical-models
+
 #ifndef FACTOR_H
 #define FACTOR_H
 
@@ -33,6 +36,12 @@ namespace Bayes {
 		std::vector<uint32_t> IndexToAssignment(size_t index) const;
 
 		double GetValueOfAssignment(const std::vector<uint32_t>& assignment) const;
+		// alias
+		double Val(const std::vector<uint32_t>& assignment) const { return GetValueOfAssignment(assignment); }
+		double operator()(const std::vector<uint32_t>& assignment) const {
+			return GetValueOfAssignment(assignment);
+		}
+
 		void SetValueOfAssignment(const std::vector<uint32_t>& assignment, double value);
 
 		bool operator==(const Factor& rhs) const
@@ -52,8 +61,13 @@ namespace Bayes {
 		}
 
 		const std::vector<uint32_t>& Var() const { return var_; }
+		uint32_t Var(size_t index) const { return var_[index]; }
+
 		const std::vector<uint32_t>& Card() const { return card_; }
+		uint32_t Card(size_t index) const { return card_[index]; }
+
 		const std::vector<double>& Val() const { return val_; }
+		double Val(size_t index) const { return val_[index]; }
 
 		void SetVar(const std::vector<uint32_t>& val);
 
@@ -79,7 +93,7 @@ namespace Bayes {
 	Factor FactorMaxMarginalization(const Factor& a, const std::vector<uint32_t>& v);
 		void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
-	std::vector<Factor> VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);
+	std::vector<Factor> VariableElimination(std::vector<Factor> f, const std::vector<uint32_t>& z);
 	Factor ComputeJointDistribution(const std::vector<Factor>& f);
 	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f);

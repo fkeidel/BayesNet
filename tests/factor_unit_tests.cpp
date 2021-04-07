@@ -9,7 +9,7 @@ namespace Bayes {
 		EXPECT_EQ(result.Var(), expected.Var());
 		EXPECT_EQ(result.Card(), expected.Card());
 		for (size_t i = 0; i < result.Val().size(); ++i) {
-			EXPECT_NEAR(result.Val()[i], expected.Val()[i],0.001);
+			EXPECT_NEAR(result.Val(i), expected.Val(i),0.001);
 		}
 	}
 
