@@ -37,10 +37,11 @@ int main()
 	};
 
 	// eliminate all variables except WET_GRAS gives the marginal probability of WET_GRAS
-	auto p_wet_gras = VariableElimination(factors, {CLOUDY, RAIN, SPRINKLER}).front();
+	auto f(factors);
+	VariableElimination(f, {CLOUDY, RAIN, SPRINKLER});
+	const auto p_wet_gras = factors.front();
 
 	std::cout << std::fixed << std::setprecision(4);
-
 	std::cout << "\n"
 		<< "-------------------\n"
 		<< "|   P(WET_GRAS)   |\n"
@@ -52,10 +53,9 @@ int main()
 
 	// If we want the probabilities of other veriables, we have to run Variable Elimination again.
 	// To get all marginal probabilities in one run, use the more efficient Clique Tree algorithm.
-
-	auto p_rain = VariableElimination(factors, { CLOUDY, SPRINKLER, WET_GRAS }).front();
-
-	std::cout << std::fixed << std::setprecision(4);
+	f = factors;
+	VariableElimination(f, { CLOUDY, SPRINKLER, WET_GRAS });
+	const auto p_rain = f.front();
 
 	std::cout << "\n"
 		<< "-------------------\n"

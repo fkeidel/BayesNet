@@ -189,9 +189,9 @@ namespace Bayes {
 		const Factor marginal2{ {2}, {2}, {0.1460, 0.8540} }; // P(X_1)
 
 		const std::vector<uint32_t> z{ 0, 1 }; // eliminate var 1
-		const auto result = VariableElimination(f, z);
+		VariableElimination(f, z);
 
-		ExpectFactorEqual(result.front(), marginal2);
+		ExpectFactorEqual(f.front(), marginal2);
 	}
 
 	TEST(UniqueVars, UniqueVars) {

@@ -91,9 +91,9 @@ namespace Bayes {
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op);
 	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& var);
 	Factor FactorMaxMarginalization(const Factor& a, const std::vector<uint32_t>& v);
-		void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
+	void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
-	std::vector<Factor> VariableElimination(std::vector<Factor> f, const std::vector<uint32_t>& z);
+	void VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);
 	Factor ComputeJointDistribution(const std::vector<Factor>& f);
 	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f);

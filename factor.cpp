@@ -623,7 +623,7 @@ namespace Bayes {
 	//	Z = list of variables to eliminate
 
 	//	function Fnew = VariableElimination(F, Z)
-	std::vector<Factor> VariableElimination(std::vector<Factor> f, const std::vector<uint32_t>& z)
+	void VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z)
 	{
 		//	List of all variables
 		//	V = unique([F(:).var]);
@@ -664,7 +664,6 @@ namespace Bayes {
 			//[F, edges] = EliminateVar(F, edges, bestVariable);
 			EliminateVar(f, edges, bestVariable);
 		} //end
-		return f;
 	}
 
 	// ComputeJointDistribution Computes the joint distribution defined by a set

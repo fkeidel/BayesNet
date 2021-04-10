@@ -29,8 +29,8 @@ namespace Bayes {
 		const auto v{ UniqueVars(f) };
 
 		// eliminate all variables
-		const auto end_factors = VariableElimination(f, v);
-		const auto eu = end_factors[0].Val(0);
+		VariableElimination(f, v);
+		const auto eu = f[0].Val(0);
 		return eu;
 	}	//end
 
@@ -70,8 +70,8 @@ namespace Bayes {
 		std::vector<uint32_t> d_var_parents(d_var.begin() + 1, d_var.end()); // parents have index 1..
 		
 		const auto x_minus_parents_of_d = Difference(x, d_var_parents);
-		const auto factors = VariableElimination(f, x_minus_parents_of_d.values);
-		const auto joint = ComputeJointDistribution(factors);
+		VariableElimination(f, x_minus_parents_of_d.values);
+		const auto joint = ComputeJointDistribution(f);
 		return joint;
 	}
 
@@ -177,10 +177,11 @@ namespace Bayes {
 			const auto idx_odr = odr.AssigmentToIndex(a_d);
 			odr.SetVal(idx_odr, 1);
 		}
-		// eliminate all variables
 		const auto factor_product = FactorProduct(odr, euf);
-		const auto end_factor = VariableElimination(std::vector<Factor>{ factor_product }, euf.Var());
-		meu = end_factor[0].Val(0);
+		// eliminate all variables
+		std::vector<Factor> factors{ factor_product };
+		VariableElimination(factors, euf.Var());
+		meu = factors[0].Val(0);
 
 		return {meu, odr};
 	}
