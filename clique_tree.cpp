@@ -629,7 +629,7 @@ namespace Bayes {
 				//	MESSAGES(i, j) = FactorMarginalization(MESSAGES(i, j), eliminateVars);
 				messages[i][j] = FactorMarginalization(messages[i][j], eliminate_vars);
 				//	MESSAGES(i, j) = NormalizeFactorValues(MESSAGES(i, j));
-				NormalizeFactorValue(messages[i][j]);
+				messages[i][j].Normalize();
 				//	[i, j] = GetNextCliques(P, MESSAGES);
 				// get next message
 				std::tie(i, j) = GetNextCliques(c, messages);
@@ -724,7 +724,7 @@ namespace Bayes {
 						// M(var) = FactorMarginalization(P.cliqueList(j), setdiff(P.cliqueList(j).var, [var]));
 						m[var] = FactorMarginalization(c.clique_list[j], Difference(c.clique_list[j].Var(), { var }).values);
 						// M(var) = NormalizeFactorValues(M(var));
-						NormalizeFactorValue(m[var]);
+						m[var].Normalize();
 					}// end
 					// break;
 					break;

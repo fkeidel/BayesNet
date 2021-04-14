@@ -214,7 +214,7 @@ namespace Bayes {
 
 		const Factor factor0_expected{ {0}, {2}, {0.7, 0.3} };
 
-		NormalizeFactorValue(factor0);
+		factor0.Normalize();
 
 		ExpectFactorEqual(factor0, factor0_expected);
 	}

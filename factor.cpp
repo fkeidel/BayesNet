@@ -182,6 +182,14 @@ namespace Bayes {
 		return fnew;
 	}
 
+	//function F = NormalizeFactorValue( F )
+	void Factor::Normalize() {
+		const auto sum = std::accumulate(val_.begin(), val_.end(), 0.0);
+		// ThisFactor.val = ThisFactor.val / sum(ThisFactor.val);
+		// F(i) = ThisFactor;
+		std::for_each(val_.begin(), val_.end(), [sum](auto& val) { val /= sum; });
+	}
+
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op)
 	{
 		// Check for empty factors
@@ -744,22 +752,10 @@ namespace Bayes {
 		return edges;
 	}
 
-	//function F = NormalizeFactorValue( F )
-	void NormalizeFactorValue(Factor& f) {
-		const auto sum = std::accumulate(f.Val().begin(), f.Val().end(), 0.0);
-		// ThisFactor.val = ThisFactor.val / sum(ThisFactor.val);
-		// F(i) = ThisFactor;
-		std::vector<double> normalized(f.Val());
-		std::for_each(normalized.begin(), normalized.end(), [sum](auto& val) { val /= sum; });
-		f.SetVal(normalized);
-	}
-
 	//function F = NormalizeFactorValues( F )
 	void NormalizeFactorValues(std::vector<Factor>& f) {
 		//  for i=1:length(F)
-		for (auto& factor : f) {
-			NormalizeFactorValue(factor);
-		}//  end
+		std::for_each(f.begin(), f.end(), [](auto& factor) {factor.Normalize(); });
 	}
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v) {

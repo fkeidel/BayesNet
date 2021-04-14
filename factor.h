@@ -78,7 +78,7 @@ namespace Bayes {
 		void SetVal(size_t index, double val);
 
 		Factor CPD(uint32_t y);
-
+		void Normalize();
 
 	private:
 		std::vector<uint32_t> var_;		// list of variable ids
@@ -98,7 +98,6 @@ namespace Bayes {
 	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f);
 	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f);
-	void NormalizeFactorValue(Factor& f);
 	void NormalizeFactorValues(std::vector<Factor>& f);
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v);
