@@ -10,19 +10,6 @@ namespace Bayes {
 			{0, 6}, {1, 7}, {2, 8}, {3, 9}, {4, 10}, {5, 11}, {0, 2, 3}, {0, 1, 2}, {1, 4, 5}
 		};
 
-		std::vector < std::vector<uint32_t> > edges
-		{
-			{0,	0,	0,	0,	0,	0,	0,	1,	0},
-			{0,	0,	0,	0,	0,	0,	0,	0,	1},
-			{0,	0,	0,	0,	0,	0,	0,	1,	0},
-			{0,	0,	0,	0,	0,	0,	1,	0,	0},
-			{0,	0,	0,	0,	0,	0,	0,	0,	1},
-			{0,	0,	0,	0,	0,	0,	0,	0,	1},
-			{0,	0,	0,	1,	0,	0,	0,	1,	0},
-			{1,	0,	1,	0,	0,	0,	1,	0,	1},
-			{0,	1,	0,	0,	1,	1,	0,	1,	0}
-		};
-
 		std::vector <Factor> factor_list{
 			{{0},     {3},     {0.01,0.18,0.81}},
 			{{1,0,2}, {3,3,3}, {1,0,0,0.5,0.5,0,0,1,0,0.5,0.5,0,0.25,0.5,0.25,0,0.5,0.5,0,1,0,0,0.5,0.5,0,0,1}},
@@ -38,7 +25,6 @@ namespace Bayes {
 			{{11,5},  {2,3},   {0.8,0.2,0.6,0.4,0.1,0.9}}
 		};
 
-
 		std::vector<Factor> clique_list{
 			{{0,6},  {3,2},   {0.008, 0.108, 0.081, 0.002, 0.072, 0.729}},
 			{{1,7},  {3,2},   {0.8, 0.6, 0.1, 0.2, 0.4, 0.9}},
@@ -51,13 +37,10 @@ namespace Bayes {
 			{{1,4,5},{3,3,3}, {1.0,0.5,0,0,0.5,1.0,0,0,0,0.5,0.25,0,0.5,0.5,0.5,0,0.25,0.5,0,0,0,1.0,0.5,0,0,0.5,1.0}}
 		};
 
-		CliqueTree c{};
-		c.nodes = nodes;
-		c.edges = edges;
-		c.factor_list = factor_list;
-
-		const auto pot = ComputeInitialPotentials(c);
-		ExpectFactorsEqual(pot.clique_list, clique_list);
+		CliqueTree c{ nodes, factor_list};
+	
+		c.ComputeInitialPotentials();
+		ExpectFactorsEqual(c.CliqueList(), clique_list);
 	}
 
 	TEST(CliqueTree, CreateCliqueTree_without_evidence) {
@@ -101,10 +84,11 @@ namespace Bayes {
 			{0,	1,	0,	0,	1,	1,	0,	1,	0}
 		};
 
-		const auto c = CreateCliqueTree(factor_list, {});
-		ExpectFactorsEqual(c.clique_list, expected_clique_list);
-		EXPECT_EQ(c.edges, expected_edges);
+		CliqueTree c{ factor_list, {} };
+		ExpectFactorsEqual(c.CliqueList(), expected_clique_list);
+		EXPECT_EQ(c.GetCliqueEdges(), expected_edges);
 	}
+
 	TEST(CliqueTree, GetNextCliques) {
 		std::vector<Factor> clique_list{
 			{{0,6},  {3,2},   {0.008, 0.108, 0.081, 0.002, 0.072, 0.729}},
@@ -131,9 +115,8 @@ namespace Bayes {
 			{0,	1,	0,	0,	1,	1,	0,	1,	0}
 		};
 
-		CliqueTree c{};
-		c.clique_list = clique_list;
-		c.edges = edges;
+		CliqueTree c{clique_list, edges};
+		
 		std::vector<std::vector<Factor>> messages(clique_list.size(), std::vector<Factor>(clique_list.size()));
 		messages[0][7] = { {0},     {3},     {0.01,0.18,0.81} };
 		messages[1][8] = { {1},     {3},     {0.3333,0.3333,0.3333} };
@@ -144,12 +127,12 @@ namespace Bayes {
 		messages[6][7] = { {0,2},   {3,3},   {0.1111,0.1111,0.1111,0.1111,0.1111,0.1111,0.1111,0.1111} };
 		messages[7][8] = { {1},     {3},     {0.01,0.18,0.81} };
 
-		const auto indices = GetNextCliques(c, messages);
+		const auto indices = c.GetNextCliques(messages);
 		std::pair<uint32_t, uint32_t> expected_indices{ 8,1 };
 		EXPECT_EQ(indices, expected_indices);
 	}
 
-	TEST(CliqueTree, CliqueTreeCalibrate) {
+	TEST(CliqueTree, Calibrate) {
 		std::vector<Factor> clique_list{
 			{{0,6},  {3,2},   {0.008, 0.108, 0.081, 0.002, 0.072, 0.729}},
 			{{1,7},  {3,2},   {0.8, 0.6, 0.1, 0.2, 0.4, 0.9}},
@@ -187,16 +170,14 @@ namespace Bayes {
 			{{1,4,5},{3,3,3}, {0.000,0.000,0.000,0.000,0.000,0.001,0.000,0.000,0.000,0.000,0.001,0.000,0.000,0.002,0.008,0.000,0.001,0.008,0.000,0.000,0.000,0.001,0.008,0.000,0.000,0.008,0.073}}
 		};
 
-		CliqueTree c{};
-		c.clique_list = clique_list;
-		c.edges = edges;
+		CliqueTree c{clique_list, edges};
 
-		CliqueTreeCalibrate(c, false);
+		c.Calibrate();
 
-		ExpectFactorsEqual(c.clique_list, clique_list_expected);
+		ExpectFactorsEqual(c.CliqueList(), clique_list_expected);
 	}
 
-	TEST(CliqueTree, ComputeExactMarginalsBP) {
+	TEST(CliqueTree, CliqueTreeComputeExactMarginalsBP) {
 		std::vector <Factor> factor_list{
 			{{0},     {3},     {0.01,0.18,0.81}},
 			{{1,0,2}, {3,3,3}, {1,0,0,0.5,0.5,0,0,1,0,0.5,0.5,0,0.25,0.5,0.25,0,0.5,0.5,0,1,0,0,0.5,0.5,0,0,1}},
@@ -212,7 +193,7 @@ namespace Bayes {
 			{{11,5},  {2,3},   {0.8,0.2,0.6,0.4,0.1,0.9}}
 		};
 
-		const auto m = ComputeExactMarginalsBP(factor_list, {}, false);
+		const auto m = CliqueTreeComputeExactMarginalsBP(factor_list, {}, false);
 
 		std::vector <Factor> expected_marginals{
 			{{0},     {3},     {0.01,0.18,0.81}},
@@ -232,7 +213,7 @@ namespace Bayes {
 		ExpectFactorsEqual(m, expected_marginals);
 	}
 
-	TEST(CliqueTree, CliqueTreeCalibrateMax) {
+	TEST(CliqueTree, CalibrateMax) {
 		std::vector <Factor> clique_list_log{
 			{{0,1},  {2,2},   {3,-1,0,1}},
 			{{1,2},  {2,2},   {4,0.2,1.5,2}}
@@ -254,16 +235,14 @@ namespace Bayes {
 			{{1,2},  {2,2},   {7,1.2,4.5,3}}
 		};
 
-		CliqueTree c{};
-		c.clique_list = clique_list;
-		c.edges = edges;
+		CliqueTree c{clique_list, edges};
 
-		CliqueTreeCalibrate(c, true);
+		c.CalibrateMax();
 
-		ExpectFactorsEqual(c.clique_list, clique_list_expected);
+		ExpectFactorsEqual(c.CliqueList(), clique_list_expected);
 	}
 
-	TEST(CliqueTree, MaxDecoding) {
+	TEST(CliqueTree, CliqueTreeMarginalsMaxDecoding) {
 		//    For instance: Let's say we have two variables 1 and 2. 
 		//    Marginals for 1 = [0.1, 0.3, 0.6]
 		//    Marginals for 2 = [0.92, 0.08]
@@ -274,7 +253,7 @@ namespace Bayes {
 		};
 		std::vector<uint32_t> expected_a{ 2,0 };
 
-		const auto a = MaxDecoding(marginals);
+		const auto a = CliqueTreeMarginalsMaxDecoding(marginals);
 
 		EXPECT_EQ(a, expected_a);
 	}
@@ -285,7 +264,7 @@ namespace Bayes {
 			{{1,0}, {2,2}, {0.1,0.9,0.5,0.5}}
 		};
 
-		const auto m = ComputeExactMarginalsBP(factor_list, {}, true);
+		const auto m = CliqueTreeComputeExactMarginalsBP(factor_list, {}, true);
 
 		std::vector <Factor> expected_marginals{
 			{{0},     {2},     {-1.022,-1.204}},
@@ -304,8 +283,8 @@ namespace Bayes {
 		const auto joint = ComputeJointDistribution(factor_list);
 		const double joint_max_value_expected = *std::max_element(joint.Val().begin(), joint.Val().end());
 
-		const auto m = ComputeExactMarginalsBP(factor_list, {}, true);
-		const auto a = MaxDecoding(m);
+		const auto m = CliqueTreeComputeExactMarginalsBP(factor_list, {}, true);
+		const auto a = CliqueTreeMarginalsMaxDecoding(m);
 		const double joint_max_value_map = joint.GetValueOfAssignment(a);
 
 		EXPECT_NEAR(joint_max_value_map, joint_max_value_expected,0.001);

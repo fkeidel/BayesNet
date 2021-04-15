@@ -40,7 +40,7 @@ int main()
 	const std::vector<std::pair<uint32_t, uint32_t>> NO_EVIDENCE{};
 
 	// compute all marginals with one run of the Clique Tree algorithm
-	const auto marginals = ComputeExactMarginalsBP(factors, NO_EVIDENCE, MAP);
+	const auto marginals = CliqueTreeComputeExactMarginalsBP(factors, NO_EVIDENCE, MAP);
 
 	std::cout << std::fixed << std::setprecision(4);
 

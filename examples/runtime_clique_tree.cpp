@@ -52,7 +52,7 @@ int main()
 	for (uint32_t i = 0; i < num_runs; ++i) {
 		std::vector <Factor> f(factors);
 		auto t1 = high_resolution_clock::now();
-		marginals = ComputeExactMarginalsBP(f, NO_EVIDENCE, MAP);
+		marginals = CliqueTreeComputeExactMarginalsBP(f, NO_EVIDENCE, MAP);
 		auto t2 = high_resolution_clock::now();
 		duration<double, std::milli> ms_double = t2 - t1;
 		runtime[i] = ms_double.count();
