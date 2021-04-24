@@ -1,4 +1,5 @@
-p_camera_given_slow, p_radar_given_slow, p_marginal_traffic
+p_camera_given_slow, p_radar_given_slow, pd_marginal_traffic
+0,0,0.0204019
 0,0,0.0204019
 0,0,0.0204019
 0,0,0.0204019
