@@ -11,6 +11,9 @@
 
 namespace Bayes {
 
+	using Evidence = std::vector<std::pair<uint32_t, uint32_t>>;
+
+
 	struct FactorValueOp {
 		virtual double operator()(const double lhs, const double rhs) const = 0;
 	};
@@ -29,6 +32,7 @@ namespace Bayes {
 
 	class Factor {
 	public:
+
 		Factor() = default;
 		Factor(const std::vector<uint32_t>& var, const std::vector<uint32_t>& card, const std::vector<double>& val);
 
@@ -91,14 +95,16 @@ namespace Bayes {
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op);
 	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& var);
 	Factor FactorMaxMarginalization(const Factor& a, const std::vector<uint32_t>& v);
-	void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
+	void ObserveEvidence(std::vector<Factor>& f, const Evidence& e);
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
 	void VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);
 	Factor ComputeJointDistribution(const std::vector<Factor>& f);
-	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e);
+	Factor SimpleComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const Evidence& e);
+	Factor VariableEliminationComputeExactMarginalBP(const uint32_t v, std::vector<Factor>& f, const Evidence& e);
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f);
 	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f);
 	void NormalizeFactorValues(std::vector<Factor>& f);
+	std::vector<Factor> CreateFactorList(const double p_traffic);
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v);
 }

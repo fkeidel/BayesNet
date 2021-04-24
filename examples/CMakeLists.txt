@@ -10,5 +10,5 @@ target_link_libraries(WaterSprinkler_Clique_Tree BayesNet)
 add_executable( Runtime_Clique_Tree "runtime_clique_tree.cpp")
 target_link_libraries(Runtime_Clique_Tree BayesNet)
 
-add_executable( TrafficJam_Variable_Elimination "traffic_jam_variable_elimination.cpp")
+add_executable( TrafficJam_Variable_Elimination "traffic_jam_variable_elimination.cpp" "example_utils.h")
 target_link_libraries(TrafficJam_Variable_Elimination BayesNet)

@@ -479,7 +479,7 @@ namespace Bayes {
 //  NOTE - DOES NOT RENORMALIZE THE FACTOR VALUES 
 //
 // function F = ObserveEvidence(F, E, normalize)
-	void ObserveEvidence(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e)
+	void ObserveEvidence(std::vector<Factor>& f, const Evidence& e)
 	{
 		//  Iterate through all evidence
 		//  for i = 1:size(E, 1),
@@ -693,8 +693,9 @@ namespace Bayes {
 		return joint;
 	}
 
-	//ComputeMarginal Computes the marginal over a set of given variables
-	//   M = ComputeMarginal(V, F, E) computes the marginal over variables V
+	// SimpleComputeMarginal 
+	// Computes the marginal over a set of given variables by creating one large factor and then summing out
+	//   M = SimpleComputeMarginal(V, F, E) computes the marginal over variables V
 	//   in the distribution induced by the set of factors F, given evidence E
 	//
 	//   M is a factor containing the marginal over variables V
@@ -705,19 +706,27 @@ namespace Bayes {
 	//   E is an N-by-2 matrix, each row being a variable/value pair. 
 	//     Variables are in the first column and values are in the second column.
 	//     If there is no evidence, pass in the empty matrix [] for E.
-	Factor ComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& e) {
+	Factor SimpleComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const Evidence& e) {
 		// Check for empty factor list
 		if (f.empty()) return {};
 		ObserveEvidence(f, e);
 		Factor joint = ComputeJointDistribution(f);
 		Factor m = FactorMarginalization(joint, Difference(joint.Var(), v).values);
 		// M.val = M.val. / sum(M.val);
-		const auto sum = std::accumulate(m.Val().begin(), m.Val().end(), 0.0);
-		for (size_t i = 0; i < m.Val().size(); ++i) {
-			m.SetVal(i, m.Val(i) / sum);
-		}
+		m.Normalize();
 		return m;
 	}
+
+	Factor VariableEliminationComputeExactMarginalBP(const uint32_t v, std::vector<Factor>& f, const Evidence& e)
+	{
+		ObserveEvidence(f,e);
+		const auto unique_vars{ UniqueVars(f)};
+		VariableElimination(f, Difference(unique_vars, { v }).values);
+		auto m = ComputeJointDistribution(f);
+		m.Normalize();
+		return m;
+	}
+
 
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f) {
 		//	V = unique([F(:).var]);
