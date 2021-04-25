@@ -104,8 +104,7 @@ namespace Bayes {
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f);
 	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f);
 	void NormalizeFactorValues(std::vector<Factor>& f);
-	std::vector<Factor> CreateFactorList(const double p_traffic);
-
+	
 	std::ostream& operator<<(std::ostream& out, const Factor& v);
 }
 

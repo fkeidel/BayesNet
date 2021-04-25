@@ -1,5 +1,5 @@
 ﻿#include "factor.h"
-#include "example_utils.h"
+#include "../example_utils.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -159,7 +159,7 @@ int main()
 	// write data to file
 	std::vector<std::vector<double>> data{ p_camera_given_slow_values, p_radar_given_slow_values, p_marginal_traffic_values };
 	WriteTableToCsv(
-		"c:\\BayesNet\\examples\\traffic.csv", // adapt path for your installation
+		"c:\\BayesNet\\examples\\traffic_jam\\traffic.csv", // adapt path for your installation
 		"p_camera_given_slow, p_radar_given_slow, pd_marginal_traffic", 
 		data
 	);
@@ -195,7 +195,7 @@ int main()
 		// write data to file
 		data = { p_camera_given_slow_values, p_radar_given_slow_values, p_marginal_traffic_values };
 		WriteTableToCsv(
-			"c:\\BayesNet\\examples\\traffic_dbn_" + std::to_string(p_traffic_transition) + ".csv", // adapt path for your installation
+			"c:\\BayesNet\\examples\\traffic_jam\\traffic_dbn_" + std::to_string(p_traffic_transition) + ".csv", // adapt path for your installation
 			"p_camera_given_slow, p_radar_given_slow, pd_marginal_traffic",
 			data
 		);
