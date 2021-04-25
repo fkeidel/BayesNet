@@ -25,9 +25,10 @@ This is a simple library for inference in [Bayesian Networks](https://en.wikiped
 
 ## Limitations
 - currently only discrete variables are supported
-- currently only simple influence diagrams possible (one decisin, one utility factor)
+- currently only simple influence diagrams possible (one decision, one utility factor)
 
 ## Examples
+- [Disease-Test (Bayes Theorem)](examples\disease_test\disease_test.md)
 - [Water Sprinkler](examples\water_sprinkler\water_sprinkler.md)
 - [Simple Bayesian Traffic Jam Detector](examples\traffic_jam\traffic_jam.ipynb)
 
