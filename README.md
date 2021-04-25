@@ -29,9 +29,9 @@ This is a simple library for inference in [Bayesian Networks](https://en.wikiped
 - currently only simple influence diagrams possible (one decision, one utility factor)
 
 ## Examples
-- [Disease-Test (Bayes Theorem)](examples/disease_test/disease_test.md)
-- [Water Sprinkler](examples/water_sprinkler/water_sprinkler.md)
-- [Simple Bayesian Traffic Jam Detector](examples/traffic_jam/traffic_jam.ipynb)
+- [Disease-Test](examples/disease_test/disease_test.md) (Bayes Theorem, factor calculation, variable elimination)
+- [Water Sprinkler](examples/water_sprinkler/water_sprinkler.md) (variable elimination, clique tree)
+- [Simple Bayesian Traffic Jam Detector](examples/traffic_jam/traffic_jam.ipynb) (sensor fusion, Hidden Markov Model, Dynamic Bayesian Network)
 
 ## Recommended reading
 - [Machine Learning: a Probabilistic Perspective (Murphy)](https://probml.github.io/pml-book/book0.html)
