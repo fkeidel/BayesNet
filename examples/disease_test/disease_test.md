@@ -1,6 +1,32 @@
 # Disease-Test
-Disease-Test is an example of the application of Bayes Rule
-cf. <br>
+
+Imagine a medical diagnostic test. The test tests if a patient has a disease. The test result (false, true) depends on the presence of the disease (false, true). Before we do the test, we have the prior information, that 14% of the population have the disease (prevalence, base rate):
+
+- P(Disease) = 0.14 
+
+Regarding the accuracy of the test, we have the following information:
+
+- P(Test=true |Disease=true)  = 0.9  (true positive rate, TPR, sensitivity) 
+- P(Test=false|Disease=false) = 0.93 (true negative rate, TNR, specificity)
+
+The goal is to calculate the probability that the patient has the disease given the test result is positive (true):
+
+- P(Disease|Test=true)
+
+This can be calculated with Base Rule from the given values:
+- P(Disease|Test=true) = P(Test=true|Disease) * P(Disease) / P(Test=true)
+
+When doing factor calculation, we do the following steps to calculate the above term:
+
+1. For each random variable (here Disease, Test), create a factor containing the values from the (conditional) probability tables
+2. Incorporate evidence, in this case: Test=true
+3. Compute the joint probability P(Disease,Test=true) = P(Test=true|Disease) * P(Disease)
+4. Marginalize variable Test
+5. Normalize the result
+
+
+References:
+
 [1] [OpenMarkov Tutorial](http://www.openmarkov.org/docs/tutorial/) - chapter 1 and<br>
 [2] [bayes-theorem-for-machine-learning](https://machinelearningmastery.com/bayes-theorem-for-machine-learning/)
 

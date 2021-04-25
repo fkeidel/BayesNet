@@ -29,19 +29,21 @@ int main()
 	double prevalence { 0.14 };
 	double sensitivity{ 0.9  }; // true positive rate (TPR)
 	double specificity{ 0.93 }; // true negative rate (TNR)
+	
+	// create factores of (conditional) probability distributions
 	Factor p_disease{            {DISEASE},      {2},   {1- prevalence,prevalence} };
 	Factor p_test_given_disease{ {TEST,DISEASE}, {2,2}, {specificity, 1-specificity, 1-sensitivity,sensitivity} };
 	std::vector<Factor> factors{ p_disease, p_test_given_disease };
 
 	// manual calculation of P(Disease|Test=true)
-	// Step 1: set evidence
+	// set evidence
 	Evidence e_test_true{ {TEST , TRUE} };
 	ObserveEvidence(factors, e_test_true);
 
-	// Step 2: calculate joint distribution P(Disease,Test=true) = P(Test=true|Disease)*P(Test=true)
+	// calculate joint distribution P(Disease,Test=true) = P(Test=true|Disease)*P(Test=true)
 	Factor joint_disease_test = ComputeJointDistribution(factors);
 
-	// Step 3: marginalize (sum out) Test and noralize
+	// marginalize (sum out) Test and noralize
 	Factor m_disease = FactorMarginalization(joint_disease_test, { TEST });
 	m_disease.Normalize();
 

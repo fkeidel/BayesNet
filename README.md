@@ -10,27 +10,28 @@ This is a simple library for inference in [Bayesian Networks](https://en.wikiped
 ### Inference algorithms
  - [Variable Elimination algorithm (VE)](https://en.wikipedia.org/wiki/Variable_elimination)
  - [Clique Tree algorithm (Junction Tree)](https://en.wikipedia.org/wiki/Junction_tree_algorithm)
-   - cf. [Junction Tree - Stanford CS228](https://ermongroup.github.io/cs228-notes/inference/jt/) 
+    - cf. [Junction Tree - Stanford CS228](https://ermongroup.github.io/cs228-notes/inference/jt/) 
+    - compute marginals
+    - compute MAP assignements (decoding)
  - [Dynamic Bayes Nets (DBN)](https://en.wikipedia.org/wiki/Dynamic_Bayesian_network) - [Hidden Markov Models (HMM)](https://en.wikipedia.org/wiki/Hidden_Markov_model)
-   - cf. [Dynamic Bayesian Networks: Representation, Inference and Learning (Murphy)](https://www.cs.ubc.ca/~murphyk/Thesis/thesis.html)
-   - compute marginals
-   - compute MAP assignements (decoding)
+    - cf. [Dynamic Bayesian Networks: Representation, Inference and Learning (Murphy)](https://www.cs.ubc.ca/~murphyk/Thesis/thesis.html)
+
 ### Decision algorithms
 - [Influence Diagram](https://en.wikipedia.org/wiki/Influence_diagram) (currently only one decision and one utility factor)
 
 ## Benefit
-- Learn how to do exact inference and solve decision problems
-- Eficient exact inference with the Clique Tree algorithm (Junction Tree)
-- Online Inference with Dynamical Bayesian Networks (DBN)
+- learn how to do exact inference and solve decision problems
+- efficient exact inference with the Clique Tree algorithm (Junction Tree)
+- online inference with Dynamical Bayesian Networks (DBN)
 
 ## Limitations
 - currently only discrete variables are supported
 - currently only simple influence diagrams possible (one decision, one utility factor)
 
 ## Examples
-- [Disease-Test (Bayes Theorem)](examples\disease_test\disease_test.md)
-- [Water Sprinkler](examples\water_sprinkler\water_sprinkler.md)
-- [Simple Bayesian Traffic Jam Detector](examples\traffic_jam\traffic_jam.ipynb)
+- [Disease-Test (Bayes Theorem)](examples/disease_test/disease_test.md)
+- [Water Sprinkler](examples/water_sprinkler/water_sprinkler.md)
+- [Simple Bayesian Traffic Jam Detector](examples/traffic_jam/traffic_jam.ipynb)
 
 ## Recommended reading
 - [Machine Learning: a Probabilistic Perspective (Murphy)](https://probml.github.io/pml-book/book0.html)
