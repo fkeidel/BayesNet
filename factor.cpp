@@ -333,6 +333,64 @@ namespace Bayes {
 		return f_new;
 	}
 
+	// ObserveEvidence Modify the factors given some evidence.
+	//  F = ObserveEvidence(F, E) sets all entries in the factor,
+	//  that are not consistent with the evidence, E, to zero. 
+	//  E is an N-by-2 matrix, where each row consists of a variable/value pair. 
+	//    Variables are in the first column and values are in the second column.
+	//  NOTE - DOES NOT RENORMALIZE THE FACTOR VALUES 
+	//
+	// function F = ObserveEvidence(F, E, normalize)
+	void Factor::ObserveEvidence(const Evidence& e)
+	{
+		//  Iterate through all evidence
+		//  for i = 1:size(E, 1),
+		//    v = E(i, 1); variable
+		//    x = E(i, 2); value
+		for (const auto& evidence : e) {
+			uint32_t v = evidence.first;
+			uint32_t x = evidence.second;
+
+			// Does factor contain variable?
+			// indx = find(F(j).var == v);
+			const auto& it = std::find(var_.begin(), var_.end(), v);
+			// if (~isempty(indx)),
+			if (it != var_.end()) {
+				const auto indx = std::distance(var_.begin(), it);
+
+				//	Check validity of evidence
+				//	if (x > F(j).card(indx) || x < 0 ),
+				//	  error(['Invalid evidence, X_', int2str(v), ' = ', int2str(x)]);
+				//	end;
+				assert(("Invalid evidence", x < card_[indx]));
+
+				//	Adjust the factor F(j) to account for observed evidence
+				//	For each value (1-1 map between assignment and values)
+				//	for k = 1:length(F(j).val),
+				for (size_t k = 0; k < val_.size(); ++k) {
+					// get assignment for this index
+					// A = IndexToAssignment(k, F(j).card);
+					const auto a = IndexToAssignment(k);
+					//
+					//	  indx = index of evidence variable in this factor
+					//	  if (A(indx) ~= x),
+					//	    F(j).val(k) = 0;
+					//	  end;
+					if (a[indx] != x) {
+						SetVal(k, 0.0);
+					}
+				} // end for k = 1:length(F(j).val)
+
+				//	Check validity of evidence / resulting factor
+				//	if (all(F(j).val == 0)),
+				//	  warning(['Factor ', int2str(j), ' makes variable assignment impossible']);
+				//	end;
+				if (std::all_of(val_.begin(), val_.end(), [](double d) {return d == 0.0; }))
+					std::cout << "Warning: variable assignment impossible" << std::endl;
+			} //end if (!isempty(index))		
+		} //  end for i = 1:size(E, 1),
+	}
+
 
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op)
 	{
@@ -474,58 +532,12 @@ namespace Bayes {
 // function F = ObserveEvidence(F, E, normalize)
 	void ObserveEvidence(std::vector<Factor>& f, const Evidence& e)
 	{
-		//  Iterate through all evidence
-		//  for i = 1:size(E, 1),
-		//    v = E(i, 1); variable
-		//    x = E(i, 2); value
-		// 
-		for (const auto& evidence : e) {
-			uint32_t v = evidence.first;
-			uint32_t x = evidence.second;
-
-			//    Iterate through the factors
-			//    for j = 1:length(F),
-			for (size_t j = 0; j < f.size(); ++j) 
-			{
-				// Does factor contain variable?
-				// indx = find(F(j).var == v);
-				const auto& it = std::find(f[j].Var().begin(), f[j].Var().end(), v);
-				// if (~isempty(indx)),
-				if (it != f[j].Var().end()) {
-					const auto indx = std::distance(f[j].Var().begin(), it);
-
-					//	Check validity of evidence
-					//	if (x > F(j).card(indx) || x < 0 ),
-					//	  error(['Invalid evidence, X_', int2str(v), ' = ', int2str(x)]);
-					//	end;
-					assert(("Invalid evidence", x < f[j].Card(indx)));
-
-					//	Adjust the factor F(j) to account for observed evidence
-					//	For each value (1-1 map between assignment and values)
-					//	for k = 1:length(F(j).val),
-					for (size_t k = 0; k < f[j].Val().size(); ++k) {
-						// get assignment for this index
-						// A = IndexToAssignment(k, F(j).card);
-						const auto a = f[j].IndexToAssignment(k);
-						//
-						//	  indx = index of evidence variable in this factor
-						//	  if (A(indx) ~= x),
-						//	    F(j).val(k) = 0;
-						//	  end;
-						if (a[indx] != x) {
-							f[j].SetVal(k, 0.0);
-						}
-					} // end for k = 1:length(F(j).val)
-
-					//	Check validity of evidence / resulting factor
-					//	if (all(F(j).val == 0)),
-					//	  warning(['Factor ', int2str(j), ' makes variable assignment impossible']);
-					//	end;
-					if (std::all_of(f[j].Val().begin(), f[j].Val().end(), [](double d) {return d == 0.0; }))
-						std::cout << "Factor " << j << "makes variable assignment impossible" << std::endl;
-				} //end if (!isempty(index))		
-			} //   end for j = 1:length(F),
-		} //  end for i = 1:size(E, 1),
+		//    Iterate through the factors
+		//    for j = 1:length(F),
+		for (auto& factor : f)
+		{
+			factor.ObserveEvidence(e);
+		} //  end for j = 1:length(F),
 	}
 
 	// EliminateVar

@@ -87,6 +87,8 @@ namespace Bayes {
 		Factor Marginalize(const std::vector<uint32_t>& var) const;
 		Factor MaxMarginalize(const std::vector<uint32_t>& var) const;
 
+		void ObserveEvidence(const Evidence& e);
+
 	private:
 		std::vector<uint32_t> var_;		// list of variable ids
 		std::vector<uint32_t> card_;	// list of cardinalities of variables
