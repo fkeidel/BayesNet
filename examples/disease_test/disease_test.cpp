@@ -43,8 +43,8 @@ int main()
 	// calculate joint distribution P(Disease,Test=true) = P(Test=true|Disease)*P(Test=true)
 	Factor joint_disease_test = ComputeJointDistribution(factors);
 
-	// marginalize (sum out) Test and noralize
-	Factor m_disease = FactorMarginalization(joint_disease_test, { TEST });
+	// marginalize (sum out) Test and normalize
+	Factor m_disease = joint_disease_test.Marginalize({ TEST });
 	m_disease.Normalize();
 
 	std::cout << "1. Values from http://www.openmarkov.org/docs/tutorial/\n\n"

@@ -84,6 +84,9 @@ namespace Bayes {
 		Factor CPD(uint32_t y);
 		void Normalize();
 
+		Factor Marginalize(const std::vector<uint32_t>& var) const;
+		Factor MaxMarginalize(const std::vector<uint32_t>& var) const;
+
 	private:
 		std::vector<uint32_t> var_;		// list of variable ids
 		std::vector<uint32_t> card_;	// list of cardinalities of variables
@@ -93,8 +96,6 @@ namespace Bayes {
 	Factor FactorProduct(const Factor& a, const Factor& b);
 	Factor FactorSum(const Factor& a, const Factor& b);
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op);
-	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& var);
-	Factor FactorMaxMarginalization(const Factor& a, const std::vector<uint32_t>& v);
 	void ObserveEvidence(std::vector<Factor>& f, const Evidence& e);
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
 	void VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);

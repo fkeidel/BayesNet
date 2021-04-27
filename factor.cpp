@@ -190,6 +190,150 @@ namespace Bayes {
 		std::for_each(val_.begin(), val_.end(), [sum](auto& val) { val /= sum; });
 	}
 
+	// Marginalize Sums given variables out of a factor.
+	//   f_new = Marginalize(z) computes the factor with the variables
+	//   in z summed out. 
+	Factor Factor::Marginalize(const std::vector<uint32_t>& z) const {
+		// Check for empty factor or variable list
+		if (var_.empty() || z.empty()) return *this;
+
+		// Construct the output factor over var \ v (the variables in var that are not in v)
+		SetOperationResult<uint32_t> diff = Difference(var_, z);
+		const auto& var_new = diff.values;
+		const auto& map_var_new = diff.left_indices;
+
+		// Check for empty resultant factor
+		if (var_new.empty()) {
+			return { {}, {}, { std::accumulate(val_.begin(), val_.end(),0.0) } };
+		}
+
+		// Initialize Fnew.card and Fnew.val
+		std::vector<uint32_t> card_new(var_new.size(), 0);
+		// Fnew.card = A.card(map_var_new);
+		for (size_t i = 0; i < map_var_new.size(); ++i) {
+			card_new[i] = card_[map_var_new[i]];
+		}
+
+		// Fnew.val = zeros(1, prod(Fnew.card));
+		// new_val.size = prod(Fnew.card)
+		const auto val_new_size = std::accumulate(card_new.begin(), card_new.end(), 1, std::multiplies<uint32_t>());
+		std::vector<double> val_new(val_new_size, 0);
+
+		// assignments = IndexToAssignment(1:length(A.val), A.card);
+		std::vector<std::vector<uint32_t>> assignments;
+		for (size_t i = 0; i < val_.size(); ++i) {
+			assignments.push_back(IndexToAssignment(i));
+		}
+
+		Factor f_new{ var_new, card_new, {} };
+
+		// indxB = AssignmentToIndex(assignments(:, map_var_new), Fnew.card);
+		std::vector<size_t> index_new;
+		for (size_t i = 0; i < val_.size(); ++i) {
+			std::vector<uint32_t> assignment;
+			for (size_t j = 0; j < map_var_new.size(); ++j) {
+				assignment.push_back(assignments[i][map_var_new[j]]);
+			}
+			index_new.push_back(f_new.AssigmentToIndex(assignment));
+		}
+
+		// Correctly populate the factor values of B
+		// for i = 1:length(A.val),
+		//	Fnew.val(indxB(i)) = Fnew.val(indxB(i)) + A.val(i);
+		// end;
+		for (size_t i = 0; i < val_.size(); ++i) {
+			val_new[index_new[i]] = val_new[index_new[i]] + val_[i];
+		}
+
+		f_new.SetVal(val_new);
+
+		return f_new;
+	}
+
+	// FactorMaxMarginalization Takes the max of given variables when marginalizing out of a factor.
+//   B = FactorMaxMarginalization(A,V) takes in a factor and a set of variables to
+//   marginalize out. For each assignment to the remaining variables, it finds the maximum
+//   factor value over all possible assignments to the marginalized variables.
+//	  The factor data structure has the following fields:
+//       .var    Vector of variables in the factor, e.g. [1 2 3]
+//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
+//       .val    Value table of size prod(.card)
+//
+//   The resultant factor should have at least one variable remaining or this
+//   function will throw an error.
+// 
+//   See also FactorProduct.m, IndexToAssignment.m, and AssignmentToIndex.m
+//
+// Based on Coursera PGM course by Daphne Koller, Stanford Univerity, 2012
+//
+//function B = FactorMaxMarginalization(A, V)
+	Factor Factor::MaxMarginalize(const std::vector<uint32_t>& v) const
+	{
+		// Check for empty factor or variable list
+		if (var_.empty() || v.empty()) return *this;
+
+		// Construct the output factor over A.var \ v (the variables in A.var that are not in v)
+		SetOperationResult<uint32_t> diff = Difference(var_, v);
+		const auto& var_new = diff.values;
+		const auto& map_var_new = diff.left_indices;
+
+		// Check for empty resultant factor
+		assert(("resultant factor is empty", !var_new.empty()));
+
+		// Initialize B.card and B.val
+
+		std::vector<uint32_t> card_new(var_new.size(), 0);
+		// B.card = A.card(map_var_new);
+		for (size_t i = 0; i < map_var_new.size(); ++i) {
+			card_new[i] = card_[map_var_new[i]];
+		}
+
+		// B.val = zeros(1, prod(B.card));
+		// new_val.size = prod(B.card)
+		const auto val_new_size = std::accumulate(card_new.begin(), card_new.end(), 1, std::multiplies<uint32_t>());
+		std::vector<double> val_new(val_new_size, 0);
+
+		// assignments = IndexToAssignment(1:length(A.val), A.card);
+		std::vector<std::vector<uint32_t>> assignments;
+		for (size_t i = 0; i < val_.size(); ++i) {
+			assignments.push_back(IndexToAssignment(i));
+		}
+
+		Factor f_new{ var_new, card_new, {} };
+
+		// indxB = AssignmentToIndex(assignments(:, map_var_new), B.card);
+		std::vector<size_t> index_new;
+		for (size_t i = 0; i < val_.size(); ++i) {
+			std::vector<uint32_t> assignment;
+			for (size_t j = 0; j < map_var_new.size(); ++j) {
+				assignment.push_back(assignments[i][map_var_new[j]]);
+			}
+			index_new.push_back(f_new.AssigmentToIndex(assignment));
+		}
+
+		// Correctly populate the factor values of B
+		// for i = 1:length(A.val)
+		for (size_t i = 0; i < val_.size(); ++i) {
+			// Iterate through the values of A
+			// if B.val(indxB(i)) == 0
+			if (val_new[index_new[i]] == 0) {
+				// B has not been initialized yet
+				//        B.val(indxB(i)) = A.val(i);
+				val_new[index_new[i]] = val_[i];
+				//    else
+			}
+			else {
+				// B.val(indxB(i)) = max([B.val(indxB(i)), A.val(i)]);
+				val_new[index_new[i]] = std::max(val_new[index_new[i]], val_[i]);
+			}//    end
+		} //end;
+
+		f_new.SetVal(val_new);
+
+		return f_new;
+	}
+
+
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op)
 	{
 		// Check for empty factors
@@ -216,10 +360,10 @@ namespace Bayes {
 		//	
 		// and similarly
 		//	
-		// mapB(i) = j, if and only if, B.var(i) == C.var(j)
+		// map_var_new(i) = j, if and only if, B.var(i) == C.var(j)
 		//	
 		// For example, if A.var = [3 1 4], B.var = [4 5], and C.var = [1 3 4 5],
-		//	then, mapA = [2 1 3] and mapB = [3 4]; mapA(1) = 2 because A.var(1) = 3
+		//	then, mapA = [2 1 3] and map_var_new = [3 4]; mapA(1) = 2 because A.var(1) = 3
 		//	and C.var(2) = 3, so A.var(1) == C.var(2).
 
 		SetOperationResult<uint32_t> union_result = Union(a.Var(), b.Var());
@@ -233,7 +377,7 @@ namespace Bayes {
 		for (size_t i = 0; i < mapA.size(); ++i) {
 			c_card[mapA[i]] = a.Card(i);
 		}
-		// C.card(mapB) = B.card;
+		// C.card(map_var_new) = B.card;
 		for (size_t i = 0; i < mapB.size(); ++i) {
 			c_card[mapB[i]] = b.Card(i);
 		}
@@ -259,7 +403,7 @@ namespace Bayes {
 			indxA.push_back(a.AssigmentToIndex(assignment));
 		}
 
-		// indxB = AssignmentToIndex(assignments(:, mapB), B.card);
+		// indxB = AssignmentToIndex(assignments(:, map_var_new), B.card);
 		std::vector<size_t> indxB;
 		for (size_t i = 0; i < assignments_size; ++i) {
 			std::vector<uint32_t> assignment;
@@ -315,157 +459,6 @@ namespace Bayes {
 		return FactorArithmetic(a, b, FactorValueAdd{});
 	} //end
 
-	// FactorMarginalization Sums given variables out of a factor.
-	//   b = FactorMarginalization(a,v) computes the factor with the variables
-	//   in v summed out. The factor data structure has the following fields:
-	//       .var    Vector of variables in the factor, e.g. [1 2 3]
-	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
-	//       .val    Value table of size prod(.card)
-	//
-	//   The resultant factor should have at least one variable remaining or this
-	//   function will throw an error.
-	// 
-	//   See also FactorProduct, Factor::IndexToAssignment, and Factor::AssignmentToIndex
-
-	Factor FactorMarginalization(const Factor& a, const std::vector<uint32_t>& v)
-	{
-		// Check for empty factor or variable list
-		if (a.Var().empty() || v.empty()) return a;
-
-		// Construct the output factor over A.var \ v (the variables in A.var that are not in v)
-		SetOperationResult<uint32_t> diff = Difference(a.Var(), v);
-		const auto& b_var = diff.values;
-		const auto& mapB = diff.left_indices;
-
-		// Check for empty resultant factor
-		if (b_var.empty()) return { {},{},{std::accumulate(a.Val().begin(), a.Val().end(),0.0) } };
-
-		// Initialize B.card and B.val
-
-		std::vector<uint32_t> b_card(b_var.size(), 0);
-		// B.card = A.card(mapB);
-		for (size_t i = 0; i < mapB.size(); ++i) {
-			b_card[i] = a.Card(mapB[i]);
-		}
-
-		// B.val = zeros(1, prod(B.card));
-		// b_val.size = prod(B.card)
-		const auto b_val_size = std::accumulate(b_card.begin(), b_card.end(), 1, std::multiplies<uint32_t>());
-		std::vector<double> b_val(b_val_size, 0);
-
-		// assignments = IndexToAssignment(1:length(A.val), A.card);
-		std::vector<std::vector<uint32_t>> assignments;
-		for (size_t i = 0; i < a.Val().size(); ++i) {
-			assignments.push_back(a.IndexToAssignment(i));
-		}
-
-		Factor b{ b_var, b_card, {} };
-
-		// indxB = AssignmentToIndex(assignments(:, mapB), B.card);
-		std::vector<size_t> indxB;
-		for (size_t i = 0; i < a.Val().size(); ++i) {
-			std::vector<uint32_t> assignment;
-			for (size_t j = 0; j < mapB.size(); ++j) {
-				assignment.push_back(assignments[i][mapB[j]]);
-			}
-			indxB.push_back(b.AssigmentToIndex(assignment));
-		}
-
-		// Correctly populate the factor values of B
-		// for i = 1:length(A.val),
-		//	B.val(indxB(i)) = B.val(indxB(i)) + A.val(i);
-		// end;
-		for (size_t i = 0; i < a.Val().size(); ++i) {
-			b_val[indxB[i]] = b_val[indxB[i]] + a.Val(i);
-		}
-
-		b.SetVal(b_val);
-
-		return b;
-	}
-
-	// FactorMaxMarginalization Takes the max of given variables when marginalizing out of a factor.
-	//   B = FactorMaxMarginalization(A,V) takes in a factor and a set of variables to
-	//   marginalize out. For each assignment to the remaining variables, it finds the maximum
-	//   factor value over all possible assignments to the marginalized variables.
-	//	  The factor data structure has the following fields:
-	//       .var    Vector of variables in the factor, e.g. [1 2 3]
-	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
-	//       .val    Value table of size prod(.card)
-	//
-	//   The resultant factor should have at least one variable remaining or this
-	//   function will throw an error.
-	// 
-	//   See also FactorProduct.m, IndexToAssignment.m, and AssignmentToIndex.m
-	//
-	// Based on Coursera PGM course by Daphne Koller, Stanford Univerity, 2012
-	//
-	//function B = FactorMaxMarginalization(A, V)
-	Factor FactorMaxMarginalization(const Factor& a, const std::vector<uint32_t>& v)
-	{
-		// Check for empty factor or variable list
-		if (a.Var().empty() || v.empty()) return a;
-
-		// Construct the output factor over A.var \ v (the variables in A.var that are not in v)
-		SetOperationResult<uint32_t> diff = Difference(a.Var(), v);
-		const auto& b_var = diff.values;
-		const auto& mapB = diff.left_indices;
-
-		// Check for empty resultant factor
-		assert(("resultant factor is empty", !b_var.empty()));
-
-		// Initialize B.card and B.val
-
-		std::vector<uint32_t> b_card(b_var.size(), 0);
-		// B.card = A.card(mapB);
-		for (size_t i = 0; i < mapB.size(); ++i) {
-			b_card[i] = a.Card(mapB[i]);
-		}
-
-		// B.val = zeros(1, prod(B.card));
-		// b_val.size = prod(B.card)
-		const auto b_val_size = std::accumulate(b_card.begin(), b_card.end(), 1, std::multiplies<uint32_t>());
-		std::vector<double> b_val(b_val_size, 0);
-
-		// assignments = IndexToAssignment(1:length(A.val), A.card);
-		std::vector<std::vector<uint32_t>> assignments;
-		for (size_t i = 0; i < a.Val().size(); ++i) {
-			assignments.push_back(a.IndexToAssignment(i));
-		}
-
-		Factor b{ b_var, b_card, {} };
-
-		// indxB = AssignmentToIndex(assignments(:, mapB), B.card);
-		std::vector<size_t> indxB;
-		for (size_t i = 0; i < a.Val().size(); ++i) {
-			std::vector<uint32_t> assignment;
-			for (size_t j = 0; j < mapB.size(); ++j) {
-				assignment.push_back(assignments[i][mapB[j]]);
-			}
-			indxB.push_back(b.AssigmentToIndex(assignment));
-		}
-
-		// Correctly populate the factor values of B
-		// for i = 1:length(A.val)
-		for (size_t i = 0; i < a.Val().size(); ++i) {
-			// Iterate through the values of A
-			// if B.val(indxB(i)) == 0
-			if (b_val[indxB[i]] == 0) {
-				// B has not been initialized yet
-				//        B.val(indxB(i)) = A.val(i);
-				b_val[indxB[i]] = a.Val(i);
-			//    else
-			}
-			else {
-				// B.val(indxB(i)) = max([B.val(indxB(i)), A.val(i)]);
-				b_val[indxB[i]] = std::max(b_val[indxB[i]], a.Val(i));
-			}//    end
-		} //end;
-
-		b.SetVal(b_val);
-
-		return b;
-	}
 
 // ObserveEvidence Modify a vector of factors given some evidence.
 //  F = ObserveEvidence(F, E) sets all entries in the vector of factors, F,
@@ -616,7 +609,7 @@ namespace Bayes {
 		} //end
 
 		//	newFactor = FactorMarginalization(newFactor, Z);
-		newFactor = FactorMarginalization(newFactor, { z });
+		newFactor = newFactor.Marginalize({ z });
 		//newF(length(nonUseFactors) + 1) = newFactor;
 		newF.push_back(newFactor);
 		f = newF;
@@ -711,7 +704,7 @@ namespace Bayes {
 		if (f.empty()) return {};
 		ObserveEvidence(f, e);
 		Factor joint = ComputeJointDistribution(f);
-		Factor m = FactorMarginalization(joint, Difference(joint.Var(), v).values);
+		Factor m = joint.Marginalize(Difference(joint.Var(), v).values);
 		// M.val = M.val. / sum(M.val);
 		m.Normalize();
 		return m;

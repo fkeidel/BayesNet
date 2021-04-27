@@ -309,7 +309,7 @@ namespace Bayes {
 		} //end
 
 		//	newFactor = FactorMarginalization(newFactor, Z);
-		newFactor = FactorMarginalization(newFactor, { z });
+		newFactor = newFactor.Marginalize({ z });
 		//newF(length(nonUseFactors) + 1) = newFactor;
 		newF.push_back(newFactor);
 		factor_list = newF;
@@ -580,7 +580,7 @@ namespace Bayes {
 			//	eliminateVars = setdiff(P.cliqueList(i).var, P.cliqueList(j).var);
 			const auto eliminate_vars = Difference(clique_list[i].Var(), clique_list[j].Var()).values;
 			//	MESSAGES(i, j) = FactorMarginalization(MESSAGES(i, j), eliminateVars);
-			messages[i][j] = FactorMarginalization(messages[i][j], eliminate_vars);
+			messages[i][j] = messages[i][j].Marginalize(eliminate_vars);
 			//	MESSAGES(i, j) = NormalizeFactorValues(MESSAGES(i, j));
 			messages[i][j].Normalize();
 			//	[i, j] = GetNextCliques(P, MESSAGES);
@@ -664,7 +664,7 @@ namespace Bayes {
 			//	eliminateVars = setdiff(P.cliqueList(i).var, P.cliqueList(j).var);
 			const auto eliminate_vars = Difference(clique_list[i].Var(), clique_list[j].Var()).values;
 			//	MESSAGES(i, j) = FactorMaxMarginalization(MESSAGES(i, j), eliminateVars);
-			messages[i][j] = FactorMaxMarginalization(messages[i][j], eliminate_vars);
+			messages[i][j] = messages[i][j].MaxMarginalize(eliminate_vars);
 			//	[i, j] = GetNextCliques(P, MESSAGES);
 			// get next message
 			std::tie(i, j) = GetNextCliques(messages);
@@ -734,11 +734,11 @@ namespace Bayes {
 					// if isMax
 					if (is_max) {
 						// M(var) = FactorMaxMarginalization(P.cliqueList(j), setdiff(P.cliqueList(j).var, [var]));
-						m[var] = FactorMaxMarginalization(c.CliqueList()[j], Difference(c.CliqueList()[j].Var(), { var }).values);
+						m[var] = c.CliqueList()[j].MaxMarginalize(Difference(c.CliqueList()[j].Var(), { var }).values);
 					} // else
 					else {
 						// M(var) = FactorMarginalization(P.cliqueList(j), setdiff(P.cliqueList(j).var, [var]));
-						m[var] = FactorMarginalization(c.CliqueList()[j], Difference(c.CliqueList()[j].Var(), { var }).values);
+						m[var] = c.CliqueList()[j].Marginalize(Difference(c.CliqueList()[j].Var(), { var }).values);
 						// M(var) = NormalizeFactorValues(M(var));
 						m[var].Normalize();
 					}// end

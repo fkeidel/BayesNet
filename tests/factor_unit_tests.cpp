@@ -59,6 +59,26 @@ namespace Bayes {
 		EXPECT_DOUBLE_EQ(value, 8.0);
 	}
 
+	// Factor Marginalize
+	// FACTORS.MARGINALIZATION = FactorMarginalization(FACTORS.INPUT(2), [2]);
+	// FACTORS.MARGINALIZATION = struct('var', [1], 'card', [2], 'val', [1 1]);
+	TEST(Factor, Marginalize) {
+		const Factor factor1{ {1,0}, {2,2}, {0.59, 0.41, 0.22, 0.78} }; // P(X_2 | X_1)
+		const Factor marginalization{ {0}, {2}, {1, 1} };
+		const std::vector<uint32_t> var{ 1 };
+		const auto result = factor1.Marginalize(var);
+		ExpectFactorEqual(result, marginalization);
+	}
+
+	TEST(Factor, MaxMarginalize) {
+		const Factor factor{ {0,6}, {3,2}, {0.0012,0.0183,0.0550,0.0003,0.0122,0.4952} };
+		const Factor max_marginalization{ {0}, {3}, {0.0012, 0.0183, 0.4952} };
+		const std::vector<uint32_t> var{ 6 };
+		const auto result = factor.MaxMarginalize(var);
+		ExpectFactorEqual(result, max_marginalization);
+	}
+
+
 	TEST(FactorProduct, FactorProduct_GivenFactor1IsEmpty_ExpectFactor0) {
 		const Factor factor0{ {0}, {2}, {0.11, 0.89} }; // P(X_1)
 		const Factor factor1{}; 
@@ -96,25 +116,6 @@ namespace Bayes {
 		const Factor factor1{ {1,2}, {2,2}, {4,1.5,0.2,2} };
 		const Factor sum{ {0,1,2}, {2,2,2}, {7,4.5,0.2,2,3,0.5,1.2,3} };
 		const auto result = FactorSum(factor0, factor1);
-	}
-
-	// Factor Marginalization
-	// FACTORS.MARGINALIZATION = FactorMarginalization(FACTORS.INPUT(2), [2]);
-	// FACTORS.MARGINALIZATION = struct('var', [1], 'card', [2], 'val', [1 1]);
-	TEST(FactorMarginalization, FactorMarginalization) {
-		const Factor factor1{ {1,0}, {2,2}, {0.59, 0.41, 0.22, 0.78} }; // P(X_2 | X_1)
-		const Factor marginalization{ {0}, {2}, {1, 1} };
-		const std::vector<uint32_t> var{ 1 };
-		const auto result = FactorMarginalization(factor1, var);
-		ExpectFactorEqual(result, marginalization);
-	}
-
-	TEST(FactorMaxMarginalization, FactorMaxMarginalization) {
-		const Factor factor{ {0,6}, {3,2}, {0.0012,0.0183,0.0550,0.0003,0.0122,0.4952} }; 
-		const Factor max_marginalization{ {0}, {3}, {0.0012, 0.0183, 0.4952} };
-		const std::vector<uint32_t> var{ 6 };
-		const auto result = FactorMaxMarginalization(factor, var);
-		ExpectFactorEqual(result, max_marginalization);
 	}
 
 	//FACTORS.INPUT(1) contains P(X_1)
