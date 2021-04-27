@@ -35,17 +35,15 @@ int main()
 	Factor p_test_given_disease{ {TEST,DISEASE}, {2,2}, {specificity, 1-specificity, 1-sensitivity,sensitivity} };
 	std::vector<Factor> factors{ p_disease, p_test_given_disease };
 
-	// manual calculation of P(Disease|Test=true)
-	// set evidence
+	// evidence
 	Evidence e_test_true{ {TEST , TRUE} };
-	ObserveEvidence(factors, e_test_true);
-
-	// calculate joint distribution P(Disease,Test=true) = P(Test=true|Disease)*P(Test=true)
-	Factor joint_disease_test = ComputeJointDistribution(factors);
-
-	// marginalize (sum out) Test and normalize
-	Factor m_disease = joint_disease_test.Marginalize({ TEST });
-	m_disease.Normalize();
+	
+	auto f{ factors }; // fresh factors
+	// Simple calculation of P(Disease|Test=true) 
+	// Calculates the joint probability of all factors and then marginalizes.
+	// Do not use SimpleComputeMarginal for large networks.
+	// For large networks use VariableElimination, see below
+	auto m_disease = SimpleComputeMarginal({ DISEASE }, f, e_test_true);
 
 	std::cout << "1. Values from http://www.openmarkov.org/docs/tutorial/\n\n"
 		<< std::fixed << std::setprecision(2)
@@ -63,10 +61,16 @@ int main()
 
 
 	// Use variable elimination
+	// In this case, the network is small and we could use also SimpleComputeMarginal, see above.
+	// But we use VariableElimination here, to show how it is used.
+	f = factors; // fresh factors
+	// observe evidence
+	ObserveEvidence(f, e_test_true);
 	// eliminate Test
-	VariableElimination(factors, { TEST }); // evidence is already set, see above
-	// multiply out all original and intermediate factors for Disease and normalize
-	m_disease = ComputeJointDistribution(factors);
+	VariableElimination(f, { TEST });
+	// the result of variable elimination is a list of unnormalized factors, so we have to compute 
+	// the joint distribution and normalize to get a marginal probability
+	m_disease = ComputeJointDistribution(f);
 	m_disease.Normalize();
 
 	std::cout << "1.2 variable elimination\n\n"
