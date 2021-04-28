@@ -746,23 +746,24 @@ namespace Bayes {
 		return v;
 	}
 
-	// Setting up the adjacency matrix
-	// @param v list of all variables in the adjacency matrix
-	// @param f list of factors containing the variables
+	// Set up the adjacency matrix
+	//   SetUpAdjacencyMatrix(v,f) creates an undirected graph. If the original graph was a
+	//   directed graph, then the resulting graph will be moralized, i.e. it will have edges
+	//   between the parents of all children
+	//
+	//   v is list of all variables in the adjacency matrix
+	//   f list of factors containing the variables
 	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f) {
-		//	edges = zeros(length(V));
+		//	cardinality of edges matrix is |v|*|v|
 		std::vector<std::vector<uint32_t>> edges(v.size(), std::vector<uint32_t>(v.size(), 0));
-		//for i = 1:length(F)
+      // go through all factors and connect all variables in a factor
 		for (size_t i = 0; i < f.size(); ++i) {
-			//	for j = 1 : length(F(i).var)
 			for (size_t j = 0; j < f[i].Var().size(); ++j) {
-				// for k = 1 : length(F(i).var)
 				for (size_t k = 0; k < f[i].Var().size(); ++k) {
-					// edges(F(i).var(j), F(i).var(k)) = 1;
 					edges[f[i].Var(j)][f[i].Var(k)] = 1;
-				} // end
-			} // end
-		} //end
+				}
+			}
+		}
 		return edges;
 	}
 

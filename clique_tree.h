@@ -18,6 +18,7 @@ namespace Bayes {
 		void ComputeInitialPotentials();
 		void EliminateVar(uint32_t z);
 		void Prune();
+		uint32_t CliqueTree::MinNeighbour(std::vector<std::vector<uint32_t>>& variable_edges)  const;
 		std::pair<uint32_t, uint32_t> GetNextCliques(std::vector<std::vector<Factor>> messages);
 		void Calibrate();
 		void CalibrateMax();
@@ -29,6 +30,7 @@ namespace Bayes {
 		std::vector <std::vector<uint32_t>> nodes;
 		std::vector <Factor> factor_list;
 		std::vector <std::vector<uint32_t>> variable_edges;
+
 		std::vector <std::vector<uint32_t>> clique_edges;
 		std::vector <Factor> clique_list;
 

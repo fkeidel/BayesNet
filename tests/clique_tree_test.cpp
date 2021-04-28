@@ -213,6 +213,49 @@ namespace Bayes {
 		ExpectFactorsEqual(m, expected_marginals);
 	}
 
+	TEST(CliqueTree, CliqueTreeComputeExactMarginalsBP_NoEvidence) {
+
+		std::vector <Factor> factors{
+			{{0},   {2},   {0.4,0.6}},
+			{{1,0}, {2,2}, {0.5,0.5,0.9,0.1}},
+			{{2,0}, {2,2}, {0.8,0.2,0.2,0.8} },
+			{{3,2,1}, {2,2,2}, {1,0,0.1,0.9,0.1,0.9,0.01,0.99}}
+		};
+
+		const auto m = CliqueTreeComputeExactMarginalsBP(factors, {}, false);
+
+		std::vector <Factor> expected_marginals{
+			{{0}, {2}, {0.40,0.60}},
+			{{1}, {2}, {0.74,0.26}},
+			{{2}, {2}, {0.44,0.56}},
+			{{3}, {2}, {0.333,0.6667}}
+		};
+
+		ExpectFactorsEqual(m, expected_marginals);
+	}
+
+	TEST(CliqueTree, CliqueTreeComputeExactMarginalsBP_WithEvidence) {
+
+		std::vector <Factor> factors{
+			{{0},   {2},   {0.4,0.6}},
+			{{1,0}, {2,2}, {0.5,0.5,0.9,0.1}},
+			{{2,0}, {2,2}, {0.8,0.2,0.2,0.8} },
+			{{3,2,1}, {2,2,2}, {1,0,0.1,0.9,0.1,0.9,0.01,0.99}}
+		};
+
+		const std::vector<std::pair<uint32_t, uint32_t>> evidence{ {0,0},  {1,1} };
+		const auto m = CliqueTreeComputeExactMarginalsBP(factors, evidence, false);
+
+		std::vector <Factor> expected_marginals{
+			{{0}, {2}, {1.0,0.0}},
+			{{1}, {2}, {0.0,1.0}},
+			{{2}, {2}, {0.8,0.2}},
+			{{3}, {2}, {0.082,0.918}}
+		};
+
+		ExpectFactorsEqual(m, expected_marginals);
+	}
+
 	TEST(CliqueTree, CalibrateMax) {
 		std::vector <Factor> clique_list_log{
 			{{0,1},  {2,2},   {3,-1,0,1}},

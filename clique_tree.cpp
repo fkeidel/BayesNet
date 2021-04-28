@@ -8,159 +8,104 @@
 
 namespace Bayes {
 
-	// CREATECLIQUETREE Takes in a list of factors F, Evidence and returns a 
+	// CliqueTree Takes in a list of factors f and evidence and creates a 
 	// clique tree after calling ComputeInitialPotentials at the end.
 	//
-	//   P = CREATECLIQUETREE(F, Evidence) Takes a list of factors and creates a clique
-	//   tree. The value of the cliques should be initialized to 
-	//   the initial potential. 
-	//   It returns a clique tree that has the following fields:
+	//   CliqueTree(f, evidence) Takes a list of factors and creates a clique
+	//   tree. The value of the cliques is initialized to the initial potential. 
+	//   The clique tree is defined by the following fields:
 	//   - .clique_edges: Contains indices of the nodes that have edges between them.
-	//   - .clique_list: Contains the list of factors used to build the Clique tree
+	//   - .clique_list: Contains the list of factors used to build the clique tree
 	//   tree.
-
-	// function P = CreateCliqueTree(F, Evidence)
+	//
 	CliqueTree::CliqueTree(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& evidence) 
-		//C.factorList = F;
 		: factor_list(f)
 	{
-		//C.nodes = {};
-		//V = unique([F(:).var]);
 		const auto v{ UniqueVars(f) };
 
-		// Setting up the cardinality for the variables since we only get a list of factors
-		// C.card = zeros(1, length(V));
+		// Setting up the cardinality for the variables from the list of factors
 		card = std::vector<uint32_t>(v.size(), 0);
-		//for i = 1 : length(V),
 		for (size_t i = 0; i < v.size(); ++i) {
-			//	 for j = 1 : length(F)
 			for (size_t j = 0; j < f.size(); ++j) {
+				//	find var i in factor j
 				const auto& f_var{ f[j].Var() };
-				//	if (~isempty(find(F(j).var == i)))
 				const auto& it = std::find(f_var.begin(), f_var.end(), i);
 				if (it != f_var.end()) {
 					const auto ind = std::distance(f_var.begin(), it);
-					// C.card(i) = F(j).card(find(F(j).var == i));
 					card[i] = f[j].Card(ind);
-					// break;
 					break;
-				}//	end
-			}//	 end
-		}//end
+				}
+			}
+		}
 
-		// Setting up the adjacency matrix.
+		// set up the adjacency matrix (undirected, moralized graph)
 		variable_edges = SetUpAdjacencyMatrix(v,f);
 
-		// variablesConsidered = 0;
-		size_t variablesConsidered{ 0 };
-
-		// while variablesConsidered < length(V)
-		while (variablesConsidered < v.size())
+		// run the Variable Elimination algorithm with min-meighbour heuristic
+		for (size_t i=0; i<v.size(); ++i)
 		{
-			// Using Min-Neighbors where you prefer to eliminate the variable that has
-			// the smallest number of edges connected to it. 
-			// Everytime you enter the loop, you look at the state of the graph and 
-			// pick the variable to be eliminated.
-			//
-			uint32_t bestVariable{ 0 };
-			//	bestScore = inf;
-			uint32_t bestScore{ std::numeric_limits<uint32_t>::max() };
-			//	for i = 1:length(v)
-			for (uint32_t i = 0; i < v.size(); ++i) {
-				//	score = sum(variable_edges(i, :));
-				const auto score = std::accumulate(variable_edges[i].begin(), variable_edges[i].end(), 0U);
-				//	if score > 0 && score < bestScore
-				if ((score > 0) && (score < bestScore)) {
-					//	bestScore = score;
-					bestScore = score;
-					//	bestVariable = i;
-					bestVariable = i;
-				} //  end
-			} // end
-			// variablesConsidered = variablesConsidered + 1;
-			++variablesConsidered;
-			// [F, C, variable_edges] = EliminateVar(F, C, variable_edges, bestVariable);
+			const auto bestVariable = MinNeighbour(variable_edges);
 			EliminateVar(bestVariable);
-		} //end
+		}
 
-		// Pruning the tree.
-		// C = PruneTree(C);
+		// absorb small cliques
 		Prune();
-		//
-		// We are incorporating the effect of evidence in our factor list.
-		// (FK) the next lines seem to be wrong in the original code, but it is unsure, if evidence is handled differently when creating clique tree
-		// for j = 1:length(Evidence),
-		//	 if (Evidence(j) > 0) // ??
-		//		C.factorList = ObserveEvidence(C.factorList, [j, Evidence(j)]); 
+
+      // compute the initial potentials for the clusters
+		factor_list = f; // restore original factor list
 		ObserveEvidence(factor_list, evidence);
-		//	 end;
-		//end;
-		
-		//// Assume that C now has correct cardinality, variables, nodes and edges. 
-		//// Here we make the function call to assign factors to cliques and compute the
-		//// initial potentials for clusters.
-		//P = ComputeInitialPotentials(C);
-		factor_list = f; // restore factor list
 		ComputeInitialPotentials();
 
-		//return
 		return;
 	}
 
+	// CliqueTree Takes in a list of nodes and factors.
+	// 
+	//   CliqueTree(nodes, f) Takes a list of nodes and factors and creates a clique
+	//   tree. You have to call ObserveEvidence() and ComputeInitialPotentials() afterwards
+	//   to finish creating the clique tree
+	//
 	CliqueTree::CliqueTree(std::vector<std::vector<uint32_t>>& nodes, std::vector<Factor>& f)
 		: nodes(nodes), factor_list(f) {}
 	
+	// CliqueTree Takes in a list of cliques and clique edges
+	// 
+	//   CliqueTree(clique_list, clique>_edges) Takes a list of  cliques and clique edges. 
+	//   
 	CliqueTree::CliqueTree(std::vector<Factor>& clique_list, std::vector <std::vector<uint32_t>>& clique_edges)
 		: clique_list(clique_list), clique_edges(clique_edges) {}
 
-	// COMPUTEINITIALPOTENTIALS Sets up the cliques in the clique tree that is
-	// passed in as a parameter.
+	// ComputeInitialPotentials Sets up the cliques in the clique tree
 	//
-	//   P = COMPUTEINITIALPOTENTIALS(C) Takes the clique tree skeleton C which is a
-	//   struct with three fields:
-	//   - nodes: cell array representing the cliques in the tree.
-	//   - cliqueEdges: represents the adjacency matrix of the tree.
-	//   - factorList: represents the list of factors that were used to build
+	//   ComputeInitialPotentials() Uses the following fields:
+	//   - nodes: array representing the cliques in the tree.
+	//   - clique_edges: represents the adjacency matrix of the clique_tree.
+	//   - factor_list: represents the list of factors that were used to build
 	//   the tree. 
 	//   
-	//   It returns the standard form of a clique tree P. P is struct with two fields:
+	//   Creates the clique_list:
 	//   - cliqueList: represents an array of cliques with appropriate factors 
-	//   from factorList assigned to each clique. Where the .val of each clique
+	//   from factor_list assigned to each clique. Where the .val of each clique
 	//   is initialized to the initial potential of that clique.
-	//   - cliqueEdges: represents the adjacency matrix of the tree. 
-
-	// function P = ComputeInitialPotentials(C)
+	//
 	void CliqueTree::ComputeInitialPotentials() {
 		// number of cliques
-		//N = length(C.nodes);
 		const auto n{ nodes.size() };
 
-		//// initialize cluster potentials 
-		//P.cliqueList = repmat(struct('var', [], 'card', [], 'val', []), N, 1);
 		clique_list.resize(n);
 
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		// YOUR CODE HERE
-		//
-		// First, compute an assignment of factors from factorList to cliques. 
-		// Then use that assignment to initialize the cliques in cliqueList to 
+		// First, computes an assignment of factors from factor_list to cliques
+		// Then uses that assignment to initialize the cliques in clique_list to 
 		// their initial potentials. 
-		// C.nodes is a list of cliques.
-		// So in your code, you should start with: P.cliqueList(i).var = C.nodes{i};
-		// Print out C to get a better understanding of its structure.
-		//
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Nodes is the list of cliques.
 
-		//for i=1:N
-		//    P.cliqueList(i).var = C.nodes{i};        
-		//end;
 		for (size_t i = 0; i < n; ++i) {
 			clique_list[i].SetVar(nodes[i]);
 			clique_list[i].SetCard(std::vector<uint32_t>(nodes[i].size(), 0)); // empty cards
 		}
 
-		// Assign factor to a clique
-		// alpha=zeros(length(C.factorList),1);			
+		// assign factor to a clique
+		// alpha is the mapping			
 		std::vector<size_t> alpha(factor_list.size(), 0);
 		// for k=1:length(C.factorList)
 		for (size_t k = 0; k < factor_list.size(); ++k) {
@@ -466,6 +411,24 @@ namespace Bayes {
 		//end
 		//
 	}//end
+
+	uint32_t CliqueTree::MinNeighbour(std::vector<std::vector<uint32_t>>& variable_edges)  const
+	{
+		// uses the Min-Neighbors heuristic to eliminate the variable that has
+		// the smallest number of edges connected to it in each cycle
+		uint32_t bestVariable{ 0 };
+		uint32_t bestScore{ std::numeric_limits<uint32_t>::max() };
+		for (uint32_t i = 0; i < variable_edges.size(); ++i) {
+			//	the score is the sum of '1's for a variable in the corresponding line in the edges matrix
+			const auto score = std::accumulate(variable_edges[i].begin(), variable_edges[i].end(), 0U);
+			//	selects the variable with the smallest score
+			if ((score > 0) && (score < bestScore)) {
+				bestScore = score;
+				bestVariable = i;
+			}
+		}
+		return bestVariable;
+	}
 
 	//GETNEXTCLIQUES Find a pair of cliques ready for message passing
 	//   [i, j] = GETNEXTCLIQUES(P, messages) finds ready cliques in a given
