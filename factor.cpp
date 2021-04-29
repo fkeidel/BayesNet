@@ -16,47 +16,30 @@ namespace Bayes {
 
 	// AssignmentToIndex Convert assignment to index.
 	//
-	//   I = AssignmentToIndex(A, D) converts an assignment, A, over variables
-	//   with cardinality D to an index into the .val vector for a factor. 
-	//   If A is a matrix then the function converts each row of A to an index.
-	//
-	// function I = AssignmentToIndex(A, D)
-	//	I = cumprod([1, D(1:end - 1)]) * (A(:) - 1) + 1;
+	//   AssignmentToIndex(assignment) converts an assignment over variables
+	//   to an index into the .val vector
+	//   
 	std::size_t Factor::AssigmentToIndex(const std::vector<uint32_t>& assignment) const
 	{
-		// card = [1, D(1:end - 1)]
 		std::vector<uint32_t> card{ 1 };
 		std::copy(card_.begin(), card_.end() - 1, std::back_inserter(card));
-		// intervals = cumprod(card)
 		std::vector<uint32_t> intervals(card_.size(), 0);
 		std::partial_sum(card.begin(), card.end(), intervals.begin(), std::multiplies<uint32_t>());
-		//	I = cumprod([1, D(1:end - 1)]) * (A(:) - 1) + 1;
 		return std::inner_product(intervals.begin(), intervals.end(), assignment.begin(), 0);
 	}
 
 	// IndexToAssignment Convert index to variable assignment.
 	//
-	//   A = IndexToAssignment(I, D) converts an index, I, into the .val vector
-	//   into an assignment over variables with cardinality D. If I is a vector, 
-	//   then the function produces a matrix of assignments, one assignment 
-	//   per row.
+	//   IndexToAssignment(index) converts an index into the .val vector
+	//   into an assignment over variables 
 	//
-	//   See also AssignmentToIndex.m and FactorTutorial.m
-	//
-	//function A = IndexToAssignment(I, D)
-	//	A = mod(floor(repmat(I(:) - 1, 1, length(D)) . / repmat(cumprod([1, D(1:end - 1)]), length(I), 1)), ...
-	//		repmat(D, length(I), 1)) + 1;
 	std::vector<uint32_t> Factor::IndexToAssignment(size_t index) const
 	{
 		std::vector<uint32_t> assignment(card_.size(), 0);
 		std::vector<uint32_t> intervals(card_.size(), 0);
-		// card = [1, D(1:end - 1)]
 		std::vector<uint32_t> card{ 1 };
 		std::copy(card_.begin(), card_.end() - 1, std::back_inserter(card));
-		// intervals = cumprod(card)
 		std::partial_sum(card.begin(), card.end(), intervals.begin(), std::multiplies<uint32_t>());
-		//	A = mod(floor(repmat(I(:) - 1, 1, length(D)) . / repmat(cumprod([1, D(1:end - 1)]), length(I), 1)), ...
-		//		repmat(D, length(I), 1)) + 1;
 		for (size_t i = 0; i < card_.size(); ++i) {
 			assignment[i] = (index / intervals[i]) % card_[i];
 		}
@@ -98,22 +81,18 @@ namespace Bayes {
 		val_[index] = val;
 	}
 
-	// function [CPD] = CPDFromFactor(F, Y)
-	//  Reorder the var, card and val fields of Fnew so that the last var is the 
-	//  child variable.
-	Factor Factor::CPD(uint32_t y) {
-		//  YIndexInF = find(F.var == Y);
+	// CPD(y)  create CPD from factor
+	//   Reorder the var, card and val fields of the factor so that the last var is the 
+	//   child variable.
+	Factor Factor::CPD(uint32_t y) 
+	{
 		const auto& it = std::find(var_.begin(), var_.end(), y);
 		assert(("y must be in var_", it != var_.end())); 
 		const auto y_index_in_f = std::distance(var_.begin(), it);
 
-		//  this.card = F.card( YIndexInF );
 		const auto y_card = card_[y_index_in_f];
 
-		// Parents is a dummy factor
-		//  Parents.var = F.var(find(F.var ~= Y));
-		//  Parents.card = F.card(find(F.var ~= Y));
-		//  Parents.val = ones(prod(Parents.card),1);
+		// temp factor for parents used for assignment/index operations
 		std::vector<uint32_t> parents_var;
 		std::vector<uint32_t> parents_card;
 		for (size_t i = 0; i < var_.size(); ++i) {
@@ -125,210 +104,179 @@ namespace Bayes {
 		std::vector<double> parents_val(std::accumulate(parents_card.begin(), parents_card.end(), 1, std::multiplies<uint32_t>()), 1.0);
 		Factor parents{parents_var, parents_card, parents_val};
 
-		//  Fnew.var = [Parents.var Y];
-		//  Fnew.card = [Parents.card this.card];
-		std::vector<uint32_t> fnew_var(parents_var);
-		fnew_var.push_back(y);
-		std::vector<uint32_t> fnew_card(parents_card);
-		fnew_card.push_back(y_card);
+		// the new factor starts with the parents
+		std::vector<uint32_t> cpd_var(parents_var);
+		std::vector<uint32_t> cpd_card(parents_card);
+		// append child as last element
+		cpd_var.push_back(y);
+		cpd_card.push_back(y_card);
+		// create new factor
+		Factor cpd{cpd_var, cpd_card, std::vector<double>(val_.size(), 0.0)};
 
-		Factor fnew{fnew_var, fnew_card, std::vector<double>(val_.size(),0.0)};
-
-		//  for i=1:length(F.val)
-		for (size_t i = 0; i < val_.size(); ++i) {
-			//    A = IndexToAssignment(i, F.card);
+		// for all values
+		for (size_t i = 0; i < val_.size(); ++i) 
+		{
+			// delete assignment to var y from original assignment and append it as last element
 			std::vector<uint32_t> a = IndexToAssignment(i);
-			//    y = A(YIndexInF);
 			const auto a_y = a[y_index_in_f];
-			//    A( YIndexInF ) = [];
 			a.erase(a.begin() + y_index_in_f);
-			//    A = [A y];
 			a.push_back(a_y);
-			//    j = AssignmentToIndex(A, Fnew.card);
-			const auto j = fnew.AssigmentToIndex(a);
-			//    Fnew.val(j) = F.val(i);
-			fnew.SetVal(j, val_[i]);
+			// copy value from current factor and old index i into new factor at the new index j
+			const auto j = cpd.AssigmentToIndex(a);
+			cpd.SetVal(j, val_[i]);
 		} //  end
 		
-		// For each assignment of Parents...
-		// for i=1:length(Parents.val)
-		for (size_t i = 0; i < parents_val.size(); ++i) {
-			// A = IndexToAssignment(i, Parents.card);
+		// normalize: for each joint assignment to parents, normalize the values to sum to 1
+		for (size_t i = 0; i < parents_val.size(); ++i) 
+		{
 			const auto a = parents.IndexToAssignment(i);
-			// SumValuesForA = 0;
+			// sum up values of child y for this parent assignment a
 			double sum_values_for_a{ 0.0 };
-			// for j=1:this.card
-			for (uint32_t j = 0; j < y_card; ++j) {
-				// A_augmented = [A j];
+			for (uint32_t j = 0; j < y_card; ++j) 
+			{
 				auto a_augmented(a);
 				a_augmented.push_back(j);
-				// idx = AssignmentToIndex(A_augmented, Fnew.card);
-				const auto idx = fnew.AssigmentToIndex(a_augmented);
-				// SumValuesForA = SumValuesForA + Fnew.val( idx );
-				sum_values_for_a += fnew.Val(idx);
-			} // end  
-			// for j=1:this.card
-			for (uint32_t j = 0; j < y_card; ++j) {
-				// A_augmented = [A j];
+				const auto idx = cpd.AssigmentToIndex(a_augmented);
+				sum_values_for_a += cpd.Val(idx);
+			} 
+			// normalize: divide all values of child y for this parent assignment by the sum
+			for (uint32_t j = 0; j < y_card; ++j) 
+			{
 				auto a_augmented(a);
 				a_augmented.push_back(j);
-				// idx = AssignmentToIndex(A_augmented, Fnew.card);
-				const auto idx = fnew.AssigmentToIndex(a_augmented);
-				// Fnew.val( idx ) = Fnew.val( idx )  / SumValuesForA;
-				fnew.SetVal(idx, fnew.Val(idx) / sum_values_for_a);
-			} //    end  
-		} //  end
-		//  CPD = Fnew;
-		return fnew;
+				const auto idx = cpd.AssigmentToIndex(a_augmented);
+				auto normalized_val{ 0.0 };
+				if (sum_values_for_a != 0.0)
+				{
+					normalized_val = cpd.Val(idx) / sum_values_for_a;
+				}
+				cpd.SetVal(idx, normalized_val);
+			}
+		}
+		return cpd;
 	}
 
-	//function F = NormalizeFactorValue( F )
-	void Factor::Normalize() {
+	// Normalize normalizes the values to sum to 1.
+	void Factor::Normalize() 
+	{
 		const auto sum = std::accumulate(val_.begin(), val_.end(), 0.0);
-		// ThisFactor.val = ThisFactor.val / sum(ThisFactor.val);
-		// F(i) = ThisFactor;
 		std::for_each(val_.begin(), val_.end(), [sum](auto& val) { val /= sum; });
 	}
 
 	// Marginalize Sums given variables out of a factor.
-	//   f_new = Marginalize(z) computes the factor with the variables
+	//   Marginalize(z) computes the factor with the variables
 	//   in z summed out. 
-	Factor Factor::Marginalize(const std::vector<uint32_t>& z) const {
+	//
+	Factor Factor::Marginalize(const std::vector<uint32_t>& z) const 
+	{
 		// Check for empty factor or variable list
 		if (var_.empty() || z.empty()) return *this;
 
 		// Construct the output factor over var \ v (the variables in var that are not in v)
 		SetOperationResult<uint32_t> diff = Difference(var_, z);
-		const auto& var_new = diff.values;
-		const auto& map_var_new = diff.left_indices;
+		const auto& new_var = diff.values;
+		const auto& map_new_var = diff.left_indices;
 
 		// Check for empty resultant factor
-		if (var_new.empty()) {
-			return { {}, {}, { std::accumulate(val_.begin(), val_.end(),0.0) } };
+		if (new_var.empty()) {
+			return { {}, {}, { std::accumulate(val_.begin(), val_.end(), 0.0) } };
 		}
 
-		// Initialize Fnew.card and Fnew.val
-		std::vector<uint32_t> card_new(var_new.size(), 0);
-		// Fnew.card = A.card(map_var_new);
-		for (size_t i = 0; i < map_var_new.size(); ++i) {
-			card_new[i] = card_[map_var_new[i]];
+		// initialize new card
+		std::vector<uint32_t> new_card(new_var.size(), 0);
+		for (size_t i = 0; i < map_new_var.size(); ++i) {
+			new_card[i] = card_[map_new_var[i]];
 		}
 
-		// Fnew.val = zeros(1, prod(Fnew.card));
-		// new_val.size = prod(Fnew.card)
-		const auto val_new_size = std::accumulate(card_new.begin(), card_new.end(), 1, std::multiplies<uint32_t>());
-		std::vector<double> val_new(val_new_size, 0);
+		// initialize new val array
+		const auto f_new_val_size = std::accumulate(new_card.begin(), new_card.end(), 1, std::multiplies<uint32_t>());
+		std::vector<double> new_val(f_new_val_size, 0.0);
 
-		// assignments = IndexToAssignment(1:length(A.val), A.card);
+		// list of all assignments for original factor
 		std::vector<std::vector<uint32_t>> assignments;
 		for (size_t i = 0; i < val_.size(); ++i) {
 			assignments.push_back(IndexToAssignment(i));
 		}
 
-		Factor f_new{ var_new, card_new, {} };
+		Factor f_new{ new_var, new_card, {} };
 
-		// indxB = AssignmentToIndex(assignments(:, map_var_new), Fnew.card);
-		std::vector<size_t> index_new;
+		std::vector<size_t> new_index(val_.size());
 		for (size_t i = 0; i < val_.size(); ++i) {
-			std::vector<uint32_t> assignment;
-			for (size_t j = 0; j < map_var_new.size(); ++j) {
-				assignment.push_back(assignments[i][map_var_new[j]]);
+			std::vector<uint32_t> new_assignment;
+			for (size_t j = 0; j < map_new_var.size(); ++j) {
+				new_assignment.push_back(assignments[i][map_new_var[j]]);
 			}
-			index_new.push_back(f_new.AssigmentToIndex(assignment));
+			new_index[i] = f_new.AssigmentToIndex(new_assignment);
 		}
 
-		// Correctly populate the factor values of B
-		// for i = 1:length(A.val),
-		//	Fnew.val(indxB(i)) = Fnew.val(indxB(i)) + A.val(i);
-		// end;
+		// sum up values that have the same new index
 		for (size_t i = 0; i < val_.size(); ++i) {
-			val_new[index_new[i]] = val_new[index_new[i]] + val_[i];
+			new_val[new_index[i]] = new_val[new_index[i]] + val_[i];
 		}
 
-		f_new.SetVal(val_new);
+		f_new.SetVal(new_val);
 
 		return f_new;
 	}
 
 	// FactorMaxMarginalization Takes the max of given variables when marginalizing out of a factor.
-//   B = FactorMaxMarginalization(A,V) takes in a factor and a set of variables to
-//   marginalize out. For each assignment to the remaining variables, it finds the maximum
-//   factor value over all possible assignments to the marginalized variables.
-//	  The factor data structure has the following fields:
-//       .var    Vector of variables in the factor, e.g. [1 2 3]
-//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
-//       .val    Value table of size prod(.card)
-//
-//   The resultant factor should have at least one variable remaining or this
-//   function will throw an error.
-// 
-//   See also FactorProduct.m, IndexToAssignment.m, and AssignmentToIndex.m
-//
-// Based on Coursera PGM course by Daphne Koller, Stanford Univerity, 2012
-//
-//function B = FactorMaxMarginalization(A, V)
-	Factor Factor::MaxMarginalize(const std::vector<uint32_t>& v) const
+	//   FactorMaxMarginalization(z) takes in a factor and a set of variables to
+	//   marginalize out. For each assignment to the remaining variables, it finds the maximum
+	//   factor value over all possible assignments to the marginalized variables.
+	//   The resultant factor should have at least one variable remaining.
+	//
+	Factor Factor::MaxMarginalize(const std::vector<uint32_t>& z) const
 	{
 		// Check for empty factor or variable list
-		if (var_.empty() || v.empty()) return *this;
+		if (var_.empty() || z.empty()) return *this;
 
 		// Construct the output factor over A.var \ v (the variables in A.var that are not in v)
-		SetOperationResult<uint32_t> diff = Difference(var_, v);
-		const auto& var_new = diff.values;
-		const auto& map_var_new = diff.left_indices;
+		SetOperationResult<uint32_t> diff = Difference(var_, z);
+		const auto& new_var = diff.values;
+		const auto& map_new_var = diff.left_indices;
 
-		// Check for empty resultant factor
-		assert(("resultant factor is empty", !var_new.empty()));
+		// check for empty resultant factor
+		assert(("resultant factor is empty", !new_var.empty()));
 
-		// Initialize B.card and B.val
-
-		std::vector<uint32_t> card_new(var_new.size(), 0);
-		// B.card = A.card(map_var_new);
-		for (size_t i = 0; i < map_var_new.size(); ++i) {
-			card_new[i] = card_[map_var_new[i]];
+		// initialize new card
+		std::vector<uint32_t> new_card(new_var.size(), 0);
+		for (size_t i = 0; i < map_new_var.size(); ++i) {
+			new_card[i] = card_[map_new_var[i]];
 		}
 
-		// B.val = zeros(1, prod(B.card));
-		// new_val.size = prod(B.card)
-		const auto val_new_size = std::accumulate(card_new.begin(), card_new.end(), 1, std::multiplies<uint32_t>());
-		std::vector<double> val_new(val_new_size, 0);
+		// initialize new val array
+		const auto new_val_size = std::accumulate(new_card.begin(), new_card.end(), 1, std::multiplies<uint32_t>());
+		std::vector<double> new_val(new_val_size, std::numeric_limits<uint32_t>::min());
 
-		// assignments = IndexToAssignment(1:length(A.val), A.card);
+		// list of all assignments for original factor
 		std::vector<std::vector<uint32_t>> assignments;
 		for (size_t i = 0; i < val_.size(); ++i) {
 			assignments.push_back(IndexToAssignment(i));
 		}
 
-		Factor f_new{ var_new, card_new, {} };
+		Factor f_new{ new_var, new_card, {} };
 
-		// indxB = AssignmentToIndex(assignments(:, map_var_new), B.card);
-		std::vector<size_t> index_new;
+		std::vector<size_t> new_index;
 		for (size_t i = 0; i < val_.size(); ++i) {
-			std::vector<uint32_t> assignment;
-			for (size_t j = 0; j < map_var_new.size(); ++j) {
-				assignment.push_back(assignments[i][map_var_new[j]]);
+			std::vector<uint32_t> new_assignment;
+			for (size_t j = 0; j < map_new_var.size(); ++j) {
+				new_assignment.push_back(assignments[i][map_new_var[j]]);
 			}
-			index_new.push_back(f_new.AssigmentToIndex(assignment));
+			new_index.push_back(f_new.AssigmentToIndex(new_assignment));
 		}
 
-		// Correctly populate the factor values of B
-		// for i = 1:length(A.val)
+		// select max value with the same new index
 		for (size_t i = 0; i < val_.size(); ++i) {
-			// Iterate through the values of A
-			// if B.val(indxB(i)) == 0
-			if (val_new[index_new[i]] == 0) {
-				// B has not been initialized yet
-				//        B.val(indxB(i)) = A.val(i);
-				val_new[index_new[i]] = val_[i];
-				//    else
+			if (new_val[new_index[i]] == std::numeric_limits<uint32_t>::min()) {
+				// new  val not initialized yet
+				new_val[new_index[i]] = val_[i];
 			}
 			else {
-				// B.val(indxB(i)) = max([B.val(indxB(i)), A.val(i)]);
-				val_new[index_new[i]] = std::max(val_new[index_new[i]], val_[i]);
-			}//    end
-		} //end;
+				new_val[new_index[i]] = std::max(new_val[new_index[i]], val_[i]);
+			}
+		}
 
-		f_new.SetVal(val_new);
+		f_new.SetVal(new_val);
 
 		return f_new;
 	}
@@ -386,7 +334,7 @@ namespace Bayes {
 				//	  warning(['Factor ', int2str(j), ' makes variable assignment impossible']);
 				//	end;
 				if (std::all_of(val_.begin(), val_.end(), [](double d) {return d == 0.0; }))
-					std::cout << "Warning: variable assignment impossible" << std::endl;
+					std::cout << "Warning: variable new_assignment impossible" << std::endl;
 			} //end if (!isempty(index))		
 		} //  end for i = 1:size(E, 1),
 	}
