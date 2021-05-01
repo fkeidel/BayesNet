@@ -6,113 +6,90 @@
 
 namespace Bayes {
 
-	TEST(InfluenceDiagram, Test1) {
-		/////////////////////////////////////////////////////////////////////////////////
-		// Test case 1 - a very simple influence diagram in which X1 is a random variable
-		// andD is a decision.The utility U is a function of X1 and D.
-		/////////////////////////////////////////////////////////////////////////////////
+	TEST(InfluenceDiagram, WhenXIsNotKnownToD) {
+		// simple influence diagram with one factor x for random variable 0
+		// and one decision factor d  for decision variable 1 and one utility factor u
+		// with parents variables 0 and 1
+		// 
+		//  x(0)       d(1)
+		//    \        /
+		//     \      /
+		//     `´    `´
+		//      u(0,1)
+		//
 
-		//X1 = struct('var', [1], 'card', [2], 'val', [7, 3]);
-		Factor x0{ {0}, {2}, {7, 3} };
-		//X1.val = X1.val / sum(X1.val);
-		const auto sum{ std::accumulate(x0.Val().begin(), x0.Val().end(),0.0) };
-		std::vector<double> normalized(x0.Val());
-		std::for_each(normalized.begin(), normalized.end(), [sum](double& d) { d /= sum; });
-		x0.SetVal(normalized);
+		// one random factor x for variable 0
+		Factor x{ {0}, {2}, {7, 3} };
+		x.Normalize();
 
-		// D = struct('var', [2], 'card', [2], 'val', [1 0]);
-		Factor d1{ {1}, {2}, {1, 0} };
-		// U1 = struct('var', [1, 2], 'card', [2, 2], 'val', [10, 1, 5, 1]);
+		// one decision factor d with scope 1for decision variable 1
+		// for d, we have two possible decision rules. We'll see which is better.
+		Factor d0 { {1}, {2}, {1, 0} };
+		Factor d1 { {1}, {2}, {0, 1} };
+		// vector with all possible decision rules
+		std::vector<Factor> all_ds{ d0,d1 };
+		// utility factor with parent variables 0 and 1
 		Factor u{ {0,1}, {2,2}, {10, 1, 5, 1} };
-		
-		//I1.RandomFactors = X1;
-		//I1.DecisionFactors = D;
-		//I1.UtilityFactors = U1;
-		InfluenceDiagram i1{ {x0},{d1}, {u} };
 
-		// All possible decision rules.
-		//D1 = D;
-		//D2 = D;
-		//D2.val = [0 1];% this is a different rule from D1 = [1 0].We_ll see which is better.
-		const auto d1_0(d1);
-		auto d1_1(d1);
-		d1_1.SetVal({ 0, 1 });
-		//AllDs = [D1 D2];
-		std::vector<Factor> all_ds{ d1_0,d1_1 };
-
-		//allEU = zeros(length(AllDs), 1);
+		// 1. Naive approach: calculate expected utilities for each decision rule
 		std::vector<double> all_eus(all_ds.size());
-		//for i = 1:length(AllDs)
 		for (size_t i = 0; i < all_ds.size(); ++i) {
-			//I1.DecisionFactors = AllDs(i);
-			i1.decision_factors = { all_ds[i] };
-			//allEU(i) = SimpleCalcExpectedUtility(I3);
-			all_eus[i] = SimpleCalcExpectedUtility(i1);
-		} //end
-
-		// OUTPUT
-		// allEU = > [7.3000, 3.8000]
+			const auto& decision_rule { all_ds[i] };
+			InfluenceDiagram id{ {x},{decision_rule},{u} };
+			// calculate expected utility given a decision rule
+			all_eus[i] = SimpleCalcExpectedUtility(id);
+		}
 		std::vector<double> expected{ 7.3000, 3.8000 };
 		ExpectVectorElementsNear(all_eus, expected);
 
-		// Get EUF...
-		const auto euf = CalculateExpectedUtilityFactor(i1);
-		// PrintFactor(euf) = >
-		// 2
-		// 1	7.300000
-		// 2	3.800000
+		// 2. Calculate expected utility with expected utility factor
+		Factor d{ {1}, {2}, {} }; // empty decision rule 
+		InfluenceDiagram id{ {x},{d},{u} };
+		const auto euf = CalculateExpectedUtilityFactor(id);
 		Factor euf_expected{ {1}, {2}, expected };
 		ExpectFactorEqual(euf, euf_expected);
 
-		//[meu optdr] = OptimizeMEU(I1)
-		const auto result = OptimizeMEU(i1);
+		const auto result = OptimizeMEU(id);
 		EXPECT_NEAR(result.meu, 7.3, 0.001);
 		Factor odr_expected{ {1}, {2}, {1,0} };
 		ExpectFactorEqual(result.odr, odr_expected);
-		//[meu optdr] = OptimizeWithJointUtility(I1)
-		//[meu optdr] = OptimizeLinearExpectations(I1)
-		// OUTPUT
-		// All should have the same results :
-		// meu = > 7.3000
-		// PrintFactor(optdr) = >
-		// 2     0
-		// 1     1
-		// 2     0
 	}
 
-	TEST(InfluenceDiagram, Test3) {
-		/////////////////////////////////////////////////////////////////////////////////
-		// Test case 3 - Make D a function of X1.
-		/////////////////////////////////////////////////////////////////////////////////
-		//X1 = struct('var', [1], 'card', [2], 'val', [7, 3]);
+	TEST(InfluenceDiagram, WhenX0IsKnownToD) {
+		// Uhe decision factor d for decision variable 1 has now a parent 
+		// factor x0 for random variable 0. The utility factor u is now a function
+		// of the decision d and the factor x2 for random variable 2.
+		// 
+		//           x0(0)
+		//             \
+		//              \
+		//              `´
+		//  x2(2)       d(1,0)
+		//    \        /
+		//     \      /
+		//     `´    `´
+		//      u(1,2)
+
 		Factor x0{ {0}, {2}, {7, 3} };
-		//X1.val = X1.val / sum(X1.val);
-		const auto sum{ std::accumulate(x0.Val().begin(), x0.Val().end(),0.0) };
-		std::vector<double> normalized(x0.Val());
-		std::for_each(normalized.begin(), normalized.end(), [sum](double& d) { d /= sum; });
-		x0.SetVal(normalized);
-		// D = struct('var', [2, 1], 'card', [2, 2], 'val', [1, 0, 0, 1]);
-		Factor d1{ {1,0}, {2,2}, {1,0,0,1} };
-		//X3 = struct('var', [3, 1, 2], 'card', [2, 2, 2], 'val', [4 4 1 1 1 1 4 4]);
+		x0.Normalize();
+	
+		Factor d{ {1,0}, {2,2}, {1,0,0,1} };
 		Factor x2{ {2,0,1}, {2,2,2}, {4, 4, 1, 1, 1, 1, 4, 4} };
-		//X3 = CPDFromFactor(X3, 3);
 		x2 = x2.CPD(2);
 
-		// U is now a function of 3 instead of 2.
-		//U1 = struct('var', [2, 3], 'card', [2, 2], 'val', [10, 1, 5, 1]);
 		Factor u{ {1,2}, {2,2}, {10, 1, 5, 1} };
 
 		//I3.RandomFactors = [X1 X3];
 		//I3.DecisionFactors = D;
 		//I3.UtilityFactors = U1;
-		InfluenceDiagram i3{ {x0,x2},{d1}, {u} };
+		InfluenceDiagram i3{ {x0,x2},{d}, {u} };
 
 		// All possible decision rules
 		//D1 = D; D2 = D; D3 = D; D4 = D;
-		auto d1_0(d1);
-		auto d1_1(d1);
-		auto d1_2(d1);
-		auto d1_3(d1);
+		auto d1_0(d);
+		auto d1_1(d);
+		auto d1_2(d);
+		auto d1_3(d);
 		//D1.val = [1 0 1 0];
 		//D2.val = [1 0 0 1];
 		//D3.val = [0 1 1 0];

@@ -3,58 +3,55 @@
 
 namespace Bayes {
 
-	// function EU = SimpleCalcExpectedUtility(I)
+	// eu = SimpleCalcExpectedUtility(id)
 	//
-	// Inputs: An influence diagram, I (as described in the writeup).
-	//         I.RandomFactors = list of factors for each random variable.  These are CPDs, with
-	//              the child variable = D.var(1)
-	//         I.DecisionFactors = factor for the decision node.
-	//         I.UtilityFactors = list of factors representing conditional utilities.
-	// Return Value: the expected utility of I
-	// Given a fully instantiated influence diagram with a single utility node and decision node,
-	// calculate and return the expected utility.  Note - assumes that the decision rule for the 
-	// decision node is fully assigned.
+	// Takes as input an influence diagram id and returns the expected utility
+	// 
+	// Calculates the expexted utility given a fully instantiated influence diagram 
+	// with a single utility node and decision node.
 	//
-	double SimpleCalcExpectedUtility(const InfluenceDiagram id) {
-		// In this function, we assume there is only one utility node.
-		//	F = [I.RandomFactors I.DecisionFactors];
+	// Note: assumes that the decision rule for the decision node is fully assigned
+	//
+	double SimpleCalcExpectedUtility(const InfluenceDiagram id) 
+	{
+		
+		// create a list of all factors
 		auto f{ id.random_factors };
 		f.insert(f.end(), id.decision_factors.begin(), id.decision_factors.end());
-		//	U = I.UtilityFactors(1);
-		auto u = id.utility_factors[0]; // only one utility
+		// In this function, we assume there is only one utility node.
+		auto u = id.utility_factors[0];
 		f.push_back(u);
 
-		//	List of all variables
-		//	V = unique([F(:).var]);
+		//	list of all variables
 		const auto v{ UniqueVars(f) };
 
 		// eliminate all variables
 		VariableElimination(f, v);
+
+		// get expected utility
 		const auto eu = f[0].Val(0);
 		return eu;
-	}	//end
+	}
 
-	// function EUF = CalculateExpectedUtilityFactor(I)
+	// euf = CalculateExpectedUtilityFactor(id)
 	//
-	// Inputs: An influence diagram I with a single decision node and a single utility node.
-	//         I.RandomFactors = list of factors for each random variable.  These are CPDs, with
-	//              the child variable = D.var(1)
-	//         I.DecisionFactors = factor for the decision node.
-	//         I.UtilityFactors = list of factors representing conditional utilities.
-	// Return value: A factor over the scope of the decision rule D from I that
-	// gives the conditional utility given each assignment for D.var
+	// Takes an influence diagram and returns a factor over the scope of the 
+	// decision rule d that gives the conditional utility given each assignment for d.var
 	//
-	// Note - We assume I has a single decision node and utility node.
-	Factor CalculateExpectedUtilityFactor(const InfluenceDiagram id) {
-		//	F = I.RandomFactors;
-		auto f{ id.random_factors };
+	// Note: assume id has a single decision node and utility node
+	Factor CalculateExpectedUtilityFactor(const InfluenceDiagram id) 
+	{
 		// In this function, we assume there is only one utility node.
 		assert(("only one utility factor supported", id.utility_factors.size() == 1));
+
+		// create list of all factors except decision factor
+		auto f{ id.random_factors };
 		auto u = id.utility_factors[0];
 		f.push_back(u);
 
-		//	List of all random variables = List of all variables - decision variable (expect only one)
+		// get decision variable
 		uint32_t d = id.decision_factors[0].Var(0);
+
 		std::vector<uint32_t> x;
 		for (const auto& factor : id.random_factors)
 		{
@@ -71,8 +68,8 @@ namespace Bayes {
 		
 		const auto x_minus_parents_of_d = Difference(x, d_var_parents);
 		VariableElimination(f, x_minus_parents_of_d.values);
-		const auto joint = ComputeJointDistribution(f);
-		return joint;
+		const auto euf = ComputeJointDistribution(f);
+		return euf;
 	}
 
 	// function [MEU OptimalDecisionRule] = OptimizeMEU( I )
@@ -108,7 +105,8 @@ namespace Bayes {
 		if (d.Var().size() == 1) { // decision variable has no parents
 			odr = euf;  // copy var and card from euf
 			// calc values
-			std::vector<double> val(d.Val().size(), 0.0); 
+			uint32_t n_val{ std::accumulate(d.Card().begin(), d.Card().end(), 1U, std::multiplies<uint32_t>()) };
+			std::vector<double> val(n_val, 0.0);
 			// all 0 except the entry that corresponds to the max value of the expected utility factor
 			auto it = std::max_element(euf.Val().begin(), euf.Val().end());
 			meu = *it;
