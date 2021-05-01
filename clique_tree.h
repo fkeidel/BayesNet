@@ -9,6 +9,14 @@
 
 namespace Bayes {
 
+	// A clique tree is an undirected tree whose nodes are cliques of variables
+	// The edges represent sepsets, which is a subset of the two cliques.
+	//
+	// The two main attributes are:
+	//
+	// .clique_list  = list of factors representing the cliques in the tree
+	// .clique_edges = adjacency matrix of cliques
+	//
 	class CliqueTree {
 	public:
 		CliqueTree(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& evidence);
@@ -18,25 +26,32 @@ namespace Bayes {
 		void ComputeInitialPotentials();
 		void EliminateVar(uint32_t z);
 		void Prune();
-		uint32_t CliqueTree::MinNeighbour(std::vector<std::vector<uint32_t>>& variable_edges)  const;
 		std::pair<uint32_t, uint32_t> GetNextCliques(std::vector<std::vector<Factor>> messages);
 		void Calibrate();
 		void CalibrateMax();
 
 		const std::vector <Factor>& CliqueList() const { return clique_list; }
+		const Factor& CliqueList(size_t i) const { return clique_list[i]; }
 		const std::vector <std::vector<uint32_t>>& GetCliqueEdges() const { return clique_edges; }
 
 	private:
-		std::vector <std::vector<uint32_t>> nodes;
+		// list of factors used in the construction of the clique tree
 		std::vector <Factor> factor_list;
-		std::vector <std::vector<uint32_t>> variable_edges;
 
-		std::vector <std::vector<uint32_t>> clique_edges;
-		std::vector <Factor> clique_list;
+		// adjacency matrix between variables used for Variable Elimination during clique tree creation
+		std::vector <std::vector<uint32_t>> variable_edges; 
 
-		std::vector <uint32_t> card; // sorted list of cardinalities of variables in the clique
-		std::vector <ptrdiff_t> factor_inds;
+		// nodes of the clique tree, each node containing the scope of a clique
+		std::vector <std::vector<uint32_t>> nodes; 
 
+		// indices of intermediate factors created during clique tree creation
+		std::vector <ptrdiff_t> message_indices;
+
+		// adjacency matrix of the cliques
+		std::vector <std::vector<uint32_t>> clique_edges; 
+
+		// list of cliques, where each clique is represented by a factor (potential)
+		std::vector <Factor> clique_list; 
 	};
 
 	std::vector<Factor> CliqueTreeComputeExactMarginalsBP(std::vector<Factor>& f, const std::vector<std::pair<uint32_t, uint32_t>>& evidence, bool is_max);

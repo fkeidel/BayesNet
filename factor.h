@@ -4,9 +4,9 @@
 #ifndef FACTOR_H
 #define FACTOR_H
 
-#include<vector>
-#include<cstdint>
-#include<iostream>
+#include <vector>
+#include <cstdint>
+#include <iostream>
 #include "utils.h"
 
 namespace Bayes {
@@ -30,6 +30,20 @@ namespace Bayes {
 		}
 	};
 
+
+	// A factor is a function that maps an assignment to a set of variables
+	// to a real value.
+	// A factor is very versatile. It can represent a (conditional) probability 
+	// in a Bayes Net (BN), a potential in a Markov Random Field (MRF) or a
+	// clique in a Clique Tree
+	// 
+	// A factor is defined over a set of variables with given dimension.
+	// The factor data structure has the following fields:
+	// 
+	// .var  Vector of variables in the factor, e.g. [1 2 3], aka scope, domain
+	// .card Vector of cardinalities corresponding to .var, e.g. [2 2 2]
+	// .val  Value table of size prod(.card)
+	//
 	class Factor {
 	public:
 
@@ -90,7 +104,7 @@ namespace Bayes {
 		void ObserveEvidence(const Evidence& e);
 
 	private:
-		std::vector<uint32_t> var_;		// list of variable ids
+		std::vector<uint32_t> var_;	// list of variable ids
 		std::vector<uint32_t> card_;	// list of cardinalities of variables
 		std::vector<double> val_;		// list of values
 	};
@@ -101,6 +115,7 @@ namespace Bayes {
 	void ObserveEvidence(std::vector<Factor>& f, const Evidence& e);
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z);
 	void VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z);
+	uint32_t MinNeighbor(std::vector<std::vector<uint32_t>>& edges, const std::vector<uint32_t>& var);
 	Factor ComputeJointDistribution(const std::vector<Factor>& f);
 	Factor SimpleComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const Evidence& e);
 	Factor VariableEliminationComputeExactMarginalBP(const uint32_t v, std::vector<Factor>& f, const Evidence& e);

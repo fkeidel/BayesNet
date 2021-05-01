@@ -7,17 +7,20 @@
 #include <iostream>
 #include <cassert>
 
-namespace Bayes {
+namespace Bayes 
+{
+
 	Factor::Factor(const std::vector<uint32_t>& var, const std::vector<uint32_t>& card, const std::vector<double>& val) :
 		var_(var), card_(card), val_(val)
 	{
-		assert(("card size must be qual to var size", card.size() == var.size()));
+		assert(("card size must be qual to z size", card.size() == var.size()));
 	}
 
-	// AssignmentToIndex Convert assignment to index.
+	// index = AssignmentToIndex(assignment) 
+	// 
+	// Convert assignment to index
 	//
-	//   AssignmentToIndex(assignment) converts an assignment over variables
-	//   to an index into the .val vector
+	// Converts an assignment over variables to an index into the .val vector
 	//   
 	std::size_t Factor::AssigmentToIndex(const std::vector<uint32_t>& assignment) const
 	{
@@ -28,10 +31,11 @@ namespace Bayes {
 		return std::inner_product(intervals.begin(), intervals.end(), assignment.begin(), 0);
 	}
 
-	// IndexToAssignment Convert index to variable assignment.
+	// assignment = IndexToAssignment(index) 
+	// 
+	// Convert index to variable assignment
 	//
-	//   IndexToAssignment(index) converts an index into the .val vector
-	//   into an assignment over variables 
+	// Converts an index into the .val vector into an assignment over variables 
 	//
 	std::vector<uint32_t> Factor::IndexToAssignment(size_t index) const
 	{
@@ -81,9 +85,12 @@ namespace Bayes {
 		val_[index] = val;
 	}
 
-	// CPD(y)  create CPD from factor
-	//   Reorder the var, card and val fields of the factor so that the last var is the 
-	//   child variable.
+	// CPD(y)  
+	// 
+	// Create CPD from factor
+	// 
+	// Reorder the var, card and val fields of the factor so that the last 
+	// variable is the child variable.
 	Factor Factor::CPD(uint32_t y) 
 	{
 		const auto& it = std::find(var_.begin(), var_.end(), y);
@@ -156,16 +163,21 @@ namespace Bayes {
 		return cpd;
 	}
 
-	// Normalize normalizes the values to sum to 1.
+	// Normalize()
+	// 
+	// Normalizes the values to sum to 1
+	//
 	void Factor::Normalize() 
 	{
 		const auto sum = std::accumulate(val_.begin(), val_.end(), 0.0);
 		std::for_each(val_.begin(), val_.end(), [sum](auto& val) { val /= sum; });
 	}
 
-	// Marginalize Sums given variables out of a factor.
-	//   Marginalize(z) computes the factor with the variables
-	//   in z summed out. 
+	// Marginalize(z)
+	// 
+	// Sums given variables z out of a factor.
+	// 
+	// Computes the factor with the variables in z summed out. 
 	//
 	Factor Factor::Marginalize(const std::vector<uint32_t>& z) const 
 	{
@@ -219,18 +231,21 @@ namespace Bayes {
 		return f_new;
 	}
 
-	// FactorMaxMarginalization Takes the max of given variables when marginalizing out of a factor.
-	//   FactorMaxMarginalization(z) takes in a factor and a set of variables to
-	//   marginalize out. For each assignment to the remaining variables, it finds the maximum
-	//   factor value over all possible assignments to the marginalized variables.
-	//   The resultant factor should have at least one variable remaining.
+	// f = MaxMarginalize(z) 
+	// 
+	// Takes the max of given variables when marginalizing out of a factor.
+	// 
+	// Takes in a factor and a set of variables to marginalize out. 
+	// For each assignment to the remaining variables, it finds the maximum
+	// factor value over all possible assignments to the marginalized variables.
+	// The resultant factor should have at least one variable remaining.
 	//
 	Factor Factor::MaxMarginalize(const std::vector<uint32_t>& z) const
 	{
-		// Check for empty factor or variable list
+		// check for empty factor or variable list
 		if (var_.empty() || z.empty()) return *this;
 
-		// Construct the output factor over A.var \ v (the variables in A.var that are not in v)
+		// construct the output factor over A.var \ v (the variables in A.var that are not in v)
 		SetOperationResult<uint32_t> diff = Difference(var_, z);
 		const auto& new_var = diff.values;
 		const auto& map_new_var = diff.left_indices;
@@ -281,149 +296,140 @@ namespace Bayes {
 		return f_new;
 	}
 
-	// ObserveEvidence Modify the factors given some evidence.
-	//  F = ObserveEvidence(F, E) sets all entries in the factor,
-	//  that are not consistent with the evidence, E, to zero. 
-	//  E is an N-by-2 matrix, where each row consists of a variable/value pair. 
-	//    Variables are in the first column and values are in the second column.
-	//  NOTE - DOES NOT RENORMALIZE THE FACTOR VALUES 
+	// ObserveEvidence(e)
+	// 
+	// Modify the factor given some evidence.
+	// 
+	// Sets all entries in the factor, that are not consistent with 
+	// the evidence e, to zero. 
+	// e is a vector of variable/value pairs. 
 	//
-	// function F = ObserveEvidence(F, E, normalize)
+	// Note: does not normalize the factor
+	//
 	void Factor::ObserveEvidence(const Evidence& e)
 	{
-		//  Iterate through all evidence
-		//  for i = 1:size(E, 1),
-		//    v = E(i, 1); variable
-		//    x = E(i, 2); value
+		//  Iterate through all evidence variable/value pairs
 		for (const auto& evidence : e) {
-			uint32_t v = evidence.first;
-			uint32_t x = evidence.second;
+			uint32_t e_var = evidence.first;
+			uint32_t e_val = evidence.second;
 
-			// Does factor contain variable?
-			// indx = find(F(j).var == v);
-			const auto& it = std::find(var_.begin(), var_.end(), v);
-			// if (~isempty(indx)),
-			if (it != var_.end()) {
+			// does this factor contain the evidence variable?
+			const auto& it = std::find(var_.begin(), var_.end(), e_var);
+			if (it != var_.end()) 
+			{
+				//	indx = index of evidence variable in this factor
 				const auto indx = std::distance(var_.begin(), it);
 
-				//	Check validity of evidence
-				//	if (x > F(j).card(indx) || x < 0 ),
-				//	  error(['Invalid evidence, X_', int2str(v), ' = ', int2str(x)]);
-				//	end;
-				assert(("Invalid evidence", x < card_[indx]));
+				//	check validity of evidence
+				assert(("Invalid evidence", e_val < card_[indx]));
 
-				//	Adjust the factor F(j) to account for observed evidence
-				//	For each value (1-1 map between assignment and values)
-				//	for k = 1:length(F(j).val),
-				for (size_t k = 0; k < val_.size(); ++k) {
+				//	adjust the factor to account for observed evidence
+				//	for each value
+				for (size_t i = 0; i < val_.size(); ++i) {
 					// get assignment for this index
-					// A = IndexToAssignment(k, F(j).card);
-					const auto a = IndexToAssignment(k);
-					//
-					//	  indx = index of evidence variable in this factor
-					//	  if (A(indx) ~= x),
-					//	    F(j).val(k) = 0;
-					//	  end;
-					if (a[indx] != x) {
-						SetVal(k, 0.0);
+					const auto a = IndexToAssignment(i);
+					// if assignment is not consisten with the evidence, set value to 0
+					if (a[indx] != e_val) 
+					{
+						SetVal(i, 0.0);
 					}
 				} // end for k = 1:length(F(j).val)
 
-				//	Check validity of evidence / resulting factor
-				//	if (all(F(j).val == 0)),
-				//	  warning(['Factor ', int2str(j), ' makes variable assignment impossible']);
-				//	end;
-				if (std::all_of(val_.begin(), val_.end(), [](double d) {return d == 0.0; }))
-					std::cout << "Warning: variable new_assignment impossible" << std::endl;
-			} //end if (!isempty(index))		
-		} //  end for i = 1:size(E, 1),
+				if (std::all_of(val_.begin(), val_.end(), [](double val) {return val == 0.0; }))
+					std::cout << "Warning: all values in the factor are 0" << std::endl;
+			} 
+		}
 	}
 
-
+	// c = FactorArithmetic(a,b,op)
+	// 
+	// Base method to do factor calculation
+	// 
+	// Applies element-wise operator op to corrsponding values in factors a and b 
+	//
 	Factor FactorArithmetic(const Factor& a, const Factor& b, const FactorValueOp& op)
 	{
-		// Check for empty factors
+		// check for empty factors
 		if (a.IsEmpty()) return b;
 		if (b.IsEmpty()) return a;
 
-		// Check that variables in both A and B have the same cardinality
+		// check that variables in both A and B have the same cardinality
 		SetOperationResult<uint32_t> intersection = Intersection(a.Var(), b.Var());
-		if (!intersection.values.empty()) {
-			// A and B have at least 1 variable in common
+		if (!intersection.values.empty()) 
+		{
+			// assert that a and b have at least 1 variable in common
 			const auto& iA = intersection.left_indices;
 			const auto& iB = intersection.right_indices;
-			// assert(all(A.card(iA) == B.card(iB)))
 			for (size_t i = 0; i < intersection.values.size(); ++i)
 			{
 				assert(("Dimensionality mismatch in factors", a.Card(iA[i]) == b.Card(iB[i])));
 			}
 		}
 
-		// Set the variables of c and construct the mapping between variables in A and B and variables in C.
+		// Set the variables of c and construct the mapping between variables in a and b and variables in c.
 		// In the code below, we have that
 		//	
-		//	mapA(i) = j, if and only if, A.var(i) == C.var(j)
-		//	
+		//	map_a_to_c(i) = j, if and only if, a.var(i) == c.var(j)
 		// and similarly
+		// map_b_to_c(i) = j, if and only if, b.var(i) == c.var(j)
 		//	
-		// map_var_new(i) = j, if and only if, B.var(i) == C.var(j)
-		//	
-		// For example, if A.var = [3 1 4], B.var = [4 5], and C.var = [1 3 4 5],
-		//	then, mapA = [2 1 3] and map_var_new = [3 4]; mapA(1) = 2 because A.var(1) = 3
-		//	and C.var(2) = 3, so A.var(1) == C.var(2).
+		// For example, if a.var = [2 0 3], b.var = [3 4], and c.var = [0 2 3 4],
+		//	then, map_a_to_c = [1 0 2] and map_b_to_c = [3 4]; 
+		// map_a_to_c(0) == 1 because a.var(0) == 2 and c.var(1) = 2, so a.var(0) == c.var(1).
 
 		SetOperationResult<uint32_t> union_result = Union(a.Var(), b.Var());
 		const auto& c_var = union_result.values;
-		const auto& mapA = union_result.left_indices;
-		const auto& mapB = union_result.right_indices;
+		const auto& map_a_to_c = union_result.left_indices;
+		const auto& map_b_to_c = union_result.right_indices;
 
 		// Set the cardinality of variables in c
-		std::vector<uint32_t> c_card(c_var.size(), 0);  // C.card = zeros(1, length(C.var));
-		// C.card(mapA) = A.card;
-		for (size_t i = 0; i < mapA.size(); ++i) {
-			c_card[mapA[i]] = a.Card(i);
+		std::vector<uint32_t> c_card(c_var.size(), 0);
+		for (size_t i = 0; i < map_a_to_c.size(); ++i) 
+		{
+			c_card[map_a_to_c[i]] = a.Card(i);
 		}
-		// C.card(map_var_new) = B.card;
-		for (size_t i = 0; i < mapB.size(); ++i) {
-			c_card[mapB[i]] = b.Card(i);
+		for (size_t i = 0; i < map_b_to_c.size(); ++i) 
+		{
+			c_card[map_b_to_c[i]] = b.Card(i);
 		}
 
 		Factor c{ union_result.values,c_card, {} };
 
 		// create assignments of c
-		// assignments = IndexToAssignment(1:prod(C.card), C.card);
-		std::vector<std::vector<uint32_t>> assignments;
-		// assignments_size = prod(C.card)
 		const auto assignments_size = std::accumulate(c_card.begin(), c_card.end(), 1, std::multiplies<uint32_t>());
-		for (size_t i = 0; i < assignments_size; ++i) {
-			assignments.push_back(c.IndexToAssignment(i));
+		std::vector<std::vector<uint32_t>> assignments(assignments_size);
+		for (size_t i = 0; i < assignments_size; ++i)
+		{
+			assignments[i] = c.IndexToAssignment(i);
 		}
 
-		// indxA = AssignmentToIndex(assignments(:, mapA), A.card);
-		std::vector<size_t> indxA;
-		for (size_t i = 0; i < assignments_size; ++i) {
-			std::vector<uint32_t> assignment;
-			for (size_t j = 0; j < mapA.size(); ++j) {
-				assignment.push_back(assignments[i][mapA[j]]);
+		std::vector<size_t> index_a(assignments_size);
+		for (size_t i = 0; i < assignments_size; ++i) 
+		{
+			std::vector<uint32_t> assignment_a(a.Var().size());
+			for (size_t j = 0; j < a.Var().size(); ++j)
+			{
+				assignment_a[j] = assignments[i][map_a_to_c[j]];
 			}
-			indxA.push_back(a.AssigmentToIndex(assignment));
+			index_a[i] = a.AssigmentToIndex(assignment_a);
 		}
 
-		// indxB = AssignmentToIndex(assignments(:, map_var_new), B.card);
-		std::vector<size_t> indxB;
-		for (size_t i = 0; i < assignments_size; ++i) {
-			std::vector<uint32_t> assignment;
-			for (size_t j = 0; j < mapB.size(); ++j) {
-				assignment.push_back(assignments[i][mapB[j]]);
+		std::vector<size_t> index_b(assignments_size);
+		for (size_t i = 0; i < assignments_size; ++i) 
+		{
+			std::vector<uint32_t> assignment_b(b.Var().size());
+			for (size_t j = 0; j < b.Var().size(); ++j)
+			{
+				assignment_b[j] = assignments[i][map_b_to_c[j]];
 			}
-			indxB.push_back(b.AssigmentToIndex(assignment));
+			index_b[i] = b.AssigmentToIndex(assignment_b);
 		}
 
-		// populate the factor values of c
-		// C.val = A.val(indxA).*B.val(indxB);
+		// apply the element-wise operator op to corrsponding entries in a and b
 		std::vector<double> c_values;
-		for (size_t i = 0; i < assignments_size; ++i) {
-			c_values.push_back(op(a.Val(indxA[i]), b.Val(indxB[i])));
+		for (size_t i = 0; i < assignments_size; ++i) 
+		{
+			c_values.push_back(op(a.Val(index_a[i]), b.Val(index_b[i])));
 		}
 
 		c.SetVal(c_values);
@@ -431,110 +437,83 @@ namespace Bayes {
 		return c;
 	}
 
-	// FactorProduct Computes the product of two factors.
-	//   c = FactorProduct(a,b) computes the product between two factors, a and b,
-	//   where each factor is defined over a set of variables with given dimension.
-	//   The factor data structure has the following fields:
-	//       .var    Vector of variables in the factor, e.g. [1 2 3]
-	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
-	//       .val    Value table of size prod(.card)
+	// c = FactorProduct(a,b) 
+	// 
+	// Computes the product of two factors a and b
 	//
-	//   See also FactorMarginalization, Factor::IndexToAssignment, and
-	//   Factor::AssignmentToIndex
-
-	Factor FactorProduct(const Factor& a, const Factor& b) {
+	Factor FactorProduct(const Factor& a, const Factor& b) 
+	{
 		return FactorArithmetic(a, b, FactorValueMultiply{});
 	}
 
-	//	 FactorSum Computes the sum of two factors.
-	//   C = FactorSum(A,B) computes the sum of two factors, A and B,
-	//   where each factor is defined over a set of variables with given dimension.
-	//   The factor data structure has the following fields:
-	//       .var    Vector of variables in the factor, e.g. [1 2 3]
-	//       .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
-	//       .val    Value table of size prod(.card) -- values should be the
-	//               logs of the true values
+	//	FactorSum(a,b)
+	// 
+	// Computes the sum of two factors  a and b
 	//
-	//   See also FactorMaxMarginalization.m, IndexToAssignment.m, and
-	//   AssignmentToIndex.m
-	//
-	// based on Coursera PGM course by Daphne Koller, Stanford Univerity, 2012
-	//
-	// function C = FactorSum(A, B)
-	Factor FactorSum(const Factor& a, const Factor& b) {
+	Factor FactorSum(const Factor& a, const Factor& b) 
+	{
 		return FactorArithmetic(a, b, FactorValueAdd{});
-	} //end
+	}
 
 
-// ObserveEvidence Modify a vector of factors given some evidence.
-//  F = ObserveEvidence(F, E) sets all entries in the vector of factors, F,
-//  that are not consistent with the evidence, E, to zero. F is a vector of
-//  factors, each a data structure with the following fields:
-//    .var    Vector of variables in the factor, e.g. [1 2 3]
-//    .card   Vector of cardinalities corresponding to .var, e.g. [2 2 2]
-//    .val    Value table of size prod(.card)
-//  E is an N-by-2 matrix, where each row consists of a variable/value pair. 
-//    Variables are in the first column and values are in the second column.
-//  NOTE - DOES NOT RENORMALIZE THE FACTOR VALUES 
-//
-// function F = ObserveEvidence(F, E, normalize)
+	// ObserveEvidence(f, e) 
+	// 
+	// Modify a vector of factors given some evidence.
+	// 
+	// Sets all entries in the vector of factors f, that are not consistent with 
+	// the evidence e, to zero. 
+	// e is a vector of variable/value pairs. 
+	//
+	// Note: does not normalize the factor
+	//
 	void ObserveEvidence(std::vector<Factor>& f, const Evidence& e)
 	{
 		//    Iterate through the factors
-		//    for j = 1:length(F),
 		for (auto& factor : f)
 		{
 			factor.ObserveEvidence(e);
-		} //  end for j = 1:length(F),
+		}
 	}
 
-	// EliminateVar
-	// Function used in production of clique trees
-	//	F = list of factors
-	//	E = adjacency matrix for variables
-	//	Z = variable to eliminate
-
-	//	function[newF E] = EliminateVar(F, E, Z)
+	// EliminateVar(f,e,z)
+	// 
+	// Elimiates a variable z from a list of factors f, given the adjacency matrix for the variables
+	// 
+	//	f = list of factors
+	//	e = adjacency matrix for variables
+	//	z = variable to eliminate
+	//
 	void EliminateVar(std::vector<Factor>& f, std::vector<std::vector<uint32_t>>& e, uint32_t z)
 	{
-		//	Index of factors to multiply(b / c they contain Z)
-		//	useFactors = [];
-		std::vector<size_t> useFactors;
+		//	Index of factors to multiply (they contain z)
+		std::vector<size_t> use_factors;
 
-		//Union of scopes of factors to multiply
-		//	scope = [];
+		// Union of scopes of factors to multiply
 		std::vector<uint32_t> scope;
-
-		// for i = 1:length(F)
+		// go through all factors
 		for (size_t i = 0; i < f.size(); ++i) {
-			//if any(F(i).var == Z)
-			if (std::any_of(f[i].Var().begin(), f[i].Var().end(), [z](uint32_t i) {return i == z; })) {
-				// useFactors = [useFactors i];
-				useFactors.push_back(i);
-				// scope = union(scope, F(i).var);
+			// if the variables in the factor contains z
+			if (std::any_of(f[i].Var().begin(), f[i].Var().end(), [z](uint32_t var) {return var == z; })) 
+			{
+				// add the factor to the list of factors to multiply
+				use_factors.push_back(i);
+				// add scope of the factor to the scope of the list of factors to multiply
 				scope = Union(scope, f[i].Var()).values;
-			} // end
-		} // end
+			}
+		}
 
 		//	update edge map
-		//	These represent the induced edges for the VE graph.
-		//	for i = 1:length(scope)
+		//	new edges represent the induced edges for the variable elimination graph.
 		for (size_t i = 0; i < scope.size(); ++i) {
-			//  for j = 1 : length(scope)
 			for (size_t j = 0; j < scope.size(); ++j) {
-				//	if i~= j
 				if (i != j) {
-					//	E(scope(i), scope(j)) = 1;
-					//	E(scope(j), scope(i)) = 1;
 					e[scope[i]][scope[j]] = 1;
 					e[scope[j]][scope[i]] = 1;
-				}//	end
-			}//	end
-		} //end
+				}
+			}
+		}
 
 		//	Remove all adjacencies for the variable to be eliminated
-		//	E(Z, :) = 0;
-		//  E(:, Z) = 0;
 		for (size_t j = 0; j < e[z].size(); ++j) {
 			e[z][j] = 0;
 		}
@@ -542,134 +521,136 @@ namespace Bayes {
 			e[i][z] = 0;
 		}
 
-		//nonUseFactors = list of factors(not indices!) which are passed through
-		//	in this round
-		//	nonUseFactors = setdiff(1:length(F), [useFactors]);
+		// non_use_factors = list of factors that don't contain z
 		std::vector<size_t> range_f(f.size(), 0);
 		std::iota(range_f.begin(), range_f.end(), 0);
-		std::vector<size_t> nonUseFactors = Difference(range_f, useFactors).values;
+		std::vector<size_t> non_use_factors = Difference(range_f, use_factors).values;
 
-		//	newF = list of factors we will return
-		std::vector<Factor> newF(nonUseFactors.size());
-		//for i = 1:length(nonUseFactors)
-		for (size_t i = 0; i < nonUseFactors.size(); ++i) {
-			//	newF(i) = F(nonUseFactors(i));
-			newF[i] = f[nonUseFactors[i]];
-			// newmap = ?
-			//	newmap(nonUseFactors(i)) = i;
-		} //end
+		//	new_f = list of factors we will return
+		std::vector<Factor> new_f(non_use_factors.size());
 
-		//	Multiply factors which involve Z->newFactor
-		//	newFactor = struct('var', [], 'card', [], 'val', []);
-		Factor newFactor{};
-		//for i = 1:length(useFactors)
-		for (size_t i = 0; i < useFactors.size(); ++i) {
-			//	newFactor = FactorProduct(newFactor, F(useFactors(i)));
-			newFactor = FactorProduct(newFactor, f[useFactors[i]]);
-		} //end
+		// copy the non_use_factors to the reuslt
+		for (size_t i = 0; i < non_use_factors.size(); ++i) 
+		{
+			new_f[i] = f[non_use_factors[i]];
+		}
 
-		//	newFactor = FactorMarginalization(newFactor, Z);
-		newFactor = newFactor.Marginalize({ z });
-		//newF(length(nonUseFactors) + 1) = newFactor;
-		newF.push_back(newFactor);
-		f = newF;
+		//	Multiply factors which involve z to get a new factor
+		Factor new_factor{};
+		for (size_t i = 0; i < use_factors.size(); ++i) 
+		{
+			new_factor = FactorProduct(new_factor, f[use_factors[i]]);
+		}
+
+		// eliminate z
+		new_factor = new_factor.Marginalize({ z });
+		new_f.push_back(new_factor);
+		f = new_f;
 	}
 
-	//	VariableElimination takes in a list of factors F and a list of variables to eliminate
+	//	VariableElimination(f, z)
+	// 
+	// Runs the Variable Elimination algorithm
+	// 
+	// VariableElimination takes in a list of factors f and a list z of variables to eliminate
 	//	and returns the resulting factor after running sum-product to eliminate
 	//	the given variables.
 	//	
-	//	Fnew = VariableElimination(F, Z)
-	//	F = list of factors
-	//	Z = list of variables to eliminate
-
-	//	function Fnew = VariableElimination(F, Z)
+	//	
+	//	f = list of factors
+	//	z = list of variables to eliminate
+	//
 	void VariableElimination(std::vector<Factor>& f, const std::vector<uint32_t>& z)
 	{
-		//	List of all variables
-		//	V = unique([F(:).var]);
+		//	sorted list of all variables
 		const auto v{ UniqueVars(f) };
 
-		// Setting up the adjacency matrix.
+		// set up the adjacency matrix.
 		auto edges{ SetUpAdjacencyMatrix(v,f) };
 
-		//	variablesConsidered = 0;
-		size_t variablesConsidered{ 0 };
-		//while variablesConsidered < length(Z)
-		while (variablesConsidered < z.size())
+		for (size_t i = 0; i < z.size(); ++i)
 		{
-			//	Using Min - Neighbors where you prefer to eliminate the variable that has
-			//	the smallest number of edges connected to it.
-			//	Everytime you enter the loop, you look at the state of the graph and
-			//	pick the variable to be eliminated.
-			//	bestVariable = 0;
-			uint32_t bestVariable{ 0 };
-			//	bestScore = inf;
-			uint32_t bestScore{ std::numeric_limits<uint32_t>::max() };
-			//	for i = 1:length(Z)
-			for (size_t i = 0; i < z.size(); ++i) {
-				//  idx = Z(i);
-				const auto idx = z[i];
-				//	score = sum(edges(idx, :));
-				const auto score = std::accumulate(edges[idx].begin(), edges[idx].end(), 0U);
-				//	if score > 0 && score < bestScore
-				if ((score > 0) && (score < bestScore)) {
-					//	bestScore = score;
-					bestScore = score;
-					//	bestVariable = idx;
-					bestVariable = idx;
-				} //  end
-			} // end
-			//	variablesConsidered = variablesConsidered + 1;
-			++variablesConsidered;
-			//[F, edges] = EliminateVar(F, edges, bestVariable);
-			EliminateVar(f, edges, bestVariable);
+			// use the Min-Neighbors heuristic to eliminate the variable that has
+			// the smallest number of edges connected to it in each cycle
+			const auto best_variable = MinNeighbor(edges, z);
+			EliminateVar(f, edges, best_variable);
 		} //end
 	}
 
-	// ComputeJointDistribution Computes the joint distribution defined by a set
-	// of given factors
+	// best_variable = MinNeighbour(edges, z)
+	//
+	// Min-Neighbours heuristic
 	// 
-	//   Joint = ComputeJointDistribution(F) computes the joint distribution
-	//   defined by a set of given factors
+	// Returns the variable in z that has the smallest number of edges connected to it
+	//
+	uint32_t MinNeighbor(std::vector<std::vector<uint32_t>>& edges, const std::vector<uint32_t >& z)
+	{
+		uint32_t best_variable{ 0 };
+		uint32_t best_score{ std::numeric_limits<uint32_t>::max() };
+		for (size_t i = 0; i < z.size(); ++i) {
+			const auto idx = z[i];
+			//	the score is the sum of '1's for a variable in the corresponding line in the edges matrix
+			const auto score = std::accumulate(edges[idx].begin(), edges[idx].end(), 0U);
+			//	selects the variable with the smallest score
+			if ((score > 0) && (score < best_score)) {
+				best_score = score;
+				best_variable = idx;
+			}
+		}
+		return best_variable;
+	}
+
+	// joint = ComputeJointDistribution(f) 
 	// 
-	//   Joint is a factor that encapsulates the joint distribution given by F
-	//   F is a vector of factors (struct array) containing the factors 
-	//     defining the distribution
-	// 
+	// Computes the joint distribution defined by a set of factors f by multiplying 
+	// all factors
+	//
 	Factor ComputeJointDistribution(const std::vector<Factor>& f) {
 		Factor joint{};
 		for (size_t i = 0; i < f.size(); ++i) {
-			//Joint = FactorProduct(Joint, F(i));
 			joint = FactorProduct(joint, f[i]);
-		} //end
+		}
 		return joint;
 	}
 
-	// SimpleComputeMarginal 
-	// Computes the marginal over a set of given variables by creating one large factor and then summing out
-	//   M = SimpleComputeMarginal(V, F, E) computes the marginal over variables V
-	//   in the distribution induced by the set of factors F, given evidence E
+	// m = SimpleComputeMarginal(v,f,e) 
+	// 
+	// Computes the marginal over variables v in the distribution induced by the set of factors f, 
+	// given evidence e. The function computes the joint distribution of the factors
+	// and then marginalzes out all variables except the variables contained in v
+	// 
+	// Note: This method is inefficient, if you have a many factors, or if you want to 
+	//       calculate more than one marginal from a set of factors. In these cases
+	//       use more efficient algorithms like VariableElimination or CliqueTree
 	//
-	//   M is a factor containing the marginal over variables V
-	//   V is a vector containing the variables in the marginal e.g. [1 2 3] for
-	//     X_1, X_2 and X_3.
-	//   F is a vector of factors (struct array) containing the factors 
-	//     defining the distribution
-	//   E is an N-by-2 matrix, each row being a variable/value pair. 
-	//     Variables are in the first column and values are in the second column.
-	//     If there is no evidence, pass in the empty matrix [] for E.
+	// m is a factor containing the marginal over variables v
+	// v is a vector containing the variables in the marginal e.g. [1 2 3] for
+	//   the variables 1,2,3
+	// f is a vector of factors defining the distribution
+	// e is vector of variable/value pairs
+	//
 	Factor SimpleComputeMarginal(const std::vector<uint32_t>& v, std::vector<Factor>& f, const Evidence& e) {
 		// Check for empty factor list
 		if (f.empty()) return {};
 		ObserveEvidence(f, e);
 		Factor joint = ComputeJointDistribution(f);
 		Factor m = joint.Marginalize(Difference(joint.Var(), v).values);
-		// M.val = M.val. / sum(M.val);
 		m.Normalize();
 		return m;
 	}
 
+	// m = VariableEliminationComputeExactMarginalBP(v,f,e)
+	// 
+	// Computes the marginal over variables v in the distribution induced by the set of factors f, 
+	// given evidence e. The function eliminates one variable after the other until only the
+	// variables in v remain and then normalizes the result
+	// 
+	// m is a factor containing the marginal over variables v
+	// v is a vector containing the variables in the marginal e.g. [1 2 3] for
+	//   the variables 1,2,3
+	// f is a vector of factors defining the distribution
+	// e is vector of variable/value pairs
+	//
 	Factor VariableEliminationComputeExactMarginalBP(const uint32_t v, std::vector<Factor>& f, const Evidence& e)
 	{
 		ObserveEvidence(f,e);
@@ -680,9 +661,14 @@ namespace Bayes {
 		return m;
 	}
 
-
+	// v = UniqueVars(f) 
+	// 
+	//	Get a vector v of unique variables from a vector f of factors
+	//	The returned variables will be ordered
+	//
+	// f vector of factors containing the variables
+	//
 	std::vector<uint32_t> UniqueVars(std::vector<Factor> f) {
-		//	V = unique([F(:).var]);
 		std::vector<uint32_t> v;
 		for (const auto& factor : f)
 		{
@@ -694,13 +680,19 @@ namespace Bayes {
 		return v;
 	}
 
+	// edges = SetUpAdjacencyMatrix(v,f) 
+	// 
 	// Set up the adjacency matrix
-	//   SetUpAdjacencyMatrix(v,f) creates an undirected graph. If the original graph was a
-	//   directed graph, then the resulting graph will be moralized, i.e. it will have edges
-	//   between the parents of all children
+	// 
+	//	The function creates an undirected graph represented as adjacency matrix. 
+	//	If the original graph was a directed graph, then the resulting graph will be moralized, 
+	// i.e. it will have edges between the parents of all children
 	//
-	//   v is list of all variables in the adjacency matrix
-	//   f list of factors containing the variables
+	// v vector of all variables in the adjacency matrix
+	// f vector of factors containing the variables
+	//	edges matrix of edges between variables, where an edge between variables i and j 
+	//       is represented by edges[i][j] == 1
+	//
 	std::vector<std::vector<uint32_t>> SetUpAdjacencyMatrix(const std::vector<uint32_t>& v, const std::vector<Factor>& f) {
 		//	cardinality of edges matrix is |v|*|v|
 		std::vector<std::vector<uint32_t>> edges(v.size(), std::vector<uint32_t>(v.size(), 0));
@@ -715,14 +707,16 @@ namespace Bayes {
 		return edges;
 	}
 
-	//function F = NormalizeFactorValues( F )
+	// NormalizeFactorValues(f)
+	// 
+	// Normalizes all factors in f
+	//
 	void NormalizeFactorValues(std::vector<Factor>& f) {
-		//  for i=1:length(F)
 		std::for_each(f.begin(), f.end(), [](auto& factor) {factor.Normalize(); });
 	}
 
 	std::ostream& operator<<(std::ostream& out, const Factor& v) {
-		out << "var=" << v.Var() << "card=" << v.Card() << "val=" << v.Val() << std::endl;
+		out << "z=" << v.Var() << "card=" << v.Card() << "val=" << v.Val() << std::endl;
 		return out;
 	}
 }

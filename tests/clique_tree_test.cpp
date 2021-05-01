@@ -117,17 +117,17 @@ namespace Bayes {
 
 		CliqueTree c{clique_list, edges};
 		
-		std::vector<std::vector<Factor>> messages(clique_list.size(), std::vector<Factor>(clique_list.size()));
-		messages[0][7] = { {0},     {3},     {0.01,0.18,0.81} };
-		messages[1][8] = { {1},     {3},     {0.3333,0.3333,0.3333} };
-		messages[2][7] = { {2},     {3},     {0.01,0.18,0.81} };
-		messages[3][6] = { {3},     {3},     {0.3333,0.3333,0.3333} };
-		messages[4][8] = { {4},     {3},     {0.3333,0.3333,0.3333} };
-		messages[5][8] = { {5},     {3},     {0.01,0.18,0.81} };
-		messages[6][7] = { {0,2},   {3,3},   {0.1111,0.1111,0.1111,0.1111,0.1111,0.1111,0.1111,0.1111} };
-		messages[7][8] = { {1},     {3},     {0.01,0.18,0.81} };
+		std::vector<std::vector<Factor>> message_indices(clique_list.size(), std::vector<Factor>(clique_list.size()));
+		message_indices[0][7] = { {0},     {3},     {0.01,0.18,0.81} };
+		message_indices[1][8] = { {1},     {3},     {0.3333,0.3333,0.3333} };
+		message_indices[2][7] = { {2},     {3},     {0.01,0.18,0.81} };
+		message_indices[3][6] = { {3},     {3},     {0.3333,0.3333,0.3333} };
+		message_indices[4][8] = { {4},     {3},     {0.3333,0.3333,0.3333} };
+		message_indices[5][8] = { {5},     {3},     {0.01,0.18,0.81} };
+		message_indices[6][7] = { {0,2},   {3,3},   {0.1111,0.1111,0.1111,0.1111,0.1111,0.1111,0.1111,0.1111} };
+		message_indices[7][8] = { {1},     {3},     {0.01,0.18,0.81} };
 
-		const auto indices = c.GetNextCliques(messages);
+		const auto indices = c.GetNextCliques(message_indices);
 		std::pair<uint32_t, uint32_t> expected_indices{ 8,1 };
 		EXPECT_EQ(indices, expected_indices);
 	}
