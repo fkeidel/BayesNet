@@ -1,5 +1,6 @@
 googletest
 out
 .vs*
-build
+*build*
 CMakeSettings.json
+.idea
