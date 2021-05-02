@@ -36,11 +36,11 @@ This is a simple library for inference in [Bayesian Networks](https://en.wikiped
 ## License
 BayesNet is free software. It is released under the [BSD Zero Clause License](LICENSE).
 
-## Recommended reading
-- [Machine Learning: a Probabilistic Perspective (Murphy)](https://probml.github.io/pml-book/book0.html)
-- [Dynamic Bayesian Networks: Representation, Inference and Learning (Murphy)](https://www.cs.ubc.ca/~murphyk/Thesis/thesis.html)
-- [Probabilistic Graphical Models: Principles and Techniques (Koller, Friedman)](https://mitpress.mit.edu/books/probabilistic-graphical-models)
-
+## Recommended reading/videos
+- [Book: Machine Learning: a Probabilistic Perspective (Murphy)](https://probml.github.io/pml-book/book0.html)
+- [Thesis: Dynamic Bayesian Networks: Representation, Inference and Learning (Murphy)](https://www.cs.ubc.ca/~murphyk/Thesis/thesis.html)
+- [Book: Probabilistic Graphical Models: Principles and Techniques (Koller, Friedman)](https://mitpress.mit.edu/books/probabilistic-graphical-models)
+- [Video: Graphical Models - Christopher Bishop - Machine Learning Summer School 2013](https://youtu.be/ju1Grt2hdko)
 ---
 <br>
 
