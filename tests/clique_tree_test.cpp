@@ -2,7 +2,8 @@
 #include "utils.h"
 #include "../clique_tree.h"
 
-namespace Bayes {
+namespace Bayes 
+{
 
 	TEST(CliqueTree, ComputeInitialPotentials) {
 		std::vector < std::vector<uint32_t> > nodes
