@@ -1,3 +1,5 @@
 googletest
 out
-.vs
+.vs*
+build
+CMakeSettings.json
