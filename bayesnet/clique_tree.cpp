@@ -2,9 +2,9 @@
 // see https://www.coursera.org/specializations/probabilistic-graphical-models
 
 #include "bayesnet/clique_tree.h"
-#include "bayesnet/factor.cpp"
 #include <unordered_map>
 #include <algorithm>
+#include <cmath>
 
 namespace Bayes {
 

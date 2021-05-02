@@ -9,8 +9,7 @@
 
 namespace Bayes {
 
-	// A clique tree is an undirected tree whose nodes are cliques of variables
-	// The edges represent sepsets, which is a subset of the two cliques.
+	// A clique tree is an undirected tree whose nodes are cliques of variables.
 	//
 	// The two main attributes are:
 	//

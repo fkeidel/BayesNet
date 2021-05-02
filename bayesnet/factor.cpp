@@ -3,7 +3,6 @@
 
 #include "bayesnet/factor.h"
 #include <numeric>
-#include <iterator>
 #include <iostream>
 #include <cassert>
 

@@ -1,6 +1,8 @@
 #ifndef EXAMPLE_UTILS_H
 #define EXAMPLE_UTILS_H
 
+#include <fstream>
+
 template<class T>
 void WriteTableToCsv(const std::string file_path, std::string header, const std::vector<std::vector<T>>& data) 
 {
