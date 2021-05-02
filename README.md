@@ -33,6 +33,9 @@ This is a simple library for inference in [Bayesian Networks](https://en.wikiped
 - [Water Sprinkler](examples/water_sprinkler/water_sprinkler.md) (variable elimination, clique tree)
 - [Simple Bayesian Traffic Jam Detector](examples/traffic_jam/traffic_jam.ipynb) (sensor fusion, Hidden Markov Model, Dynamic Bayesian Network)
 
+## License
+BayesNet is free software. It is released under the [BSD Zero Clause License](LICENSE).
+
 ## Recommended reading
 - [Machine Learning: a Probabilistic Perspective (Murphy)](https://probml.github.io/pml-book/book0.html)
 - [Dynamic Bayesian Networks: Representation, Inference and Learning (Murphy)](https://www.cs.ubc.ca/~murphyk/Thesis/thesis.html)
