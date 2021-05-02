@@ -4,7 +4,7 @@
 #ifndef CLIQUE_TREE_H
 #define CLIQUE_TREE_H
 
-#include "factor.h"
+#include "bayesnet/factor.h"
 #include <vector>
 
 namespace Bayes {

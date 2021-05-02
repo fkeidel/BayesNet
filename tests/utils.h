@@ -1,7 +1,7 @@
 #ifndef TEST_UTILS_H
 #define TEST_UTILS_H
 
-#include "../factor.h"
+#include "bayesnet/factor.h"
 #include "gtest/gtest.h"
 #include <vector>
 

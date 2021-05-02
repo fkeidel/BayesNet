@@ -7,7 +7,7 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
-#include "utils.h"
+#include "bayesnet/utils.h"
 
 namespace Bayes {
 

@@ -1,7 +1,7 @@
 // based on Coursera course 'Probabilistic Graphical Models' by Daphne Koller, Stanford University
 // see https://www.coursera.org/specializations/probabilistic-graphical-models
 
-#include "factor.h"
+#include "bayesnet/factor.h"
 #include <numeric>
 #include <iterator>
 #include <iostream>

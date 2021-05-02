@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "gtest/gtest.h"
-#include "../utils.h"
+#include "bayesnet/utils.h"
 
 namespace Bayes {
 	TEST(SortIndices, SortIndices)

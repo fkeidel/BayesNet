@@ -1,7 +1,7 @@
 #ifndef INFLUENCE_DIAGRAM_H
 #define INFLUENCE_DIAGRAM_H
 
-#include "factor.h"
+#include "bayesnet/factor.h"
 #include <vector>
 #include <utility>
 

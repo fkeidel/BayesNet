@@ -1,5 +1,5 @@
-#include "../factor.h"
-#include "../influence_diagram.h"
+#include "bayesnet/factor.h"
+#include "bayesnet/influence_diagram.h"
 #include "utils.h"
 #include "gtest/gtest.h"
 #include <algorithm>

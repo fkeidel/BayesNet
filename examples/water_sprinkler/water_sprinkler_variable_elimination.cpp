@@ -1,4 +1,4 @@
-#include "factor.h"
+#include "bayesnet/factor.h"
 #include <iostream>
 #include <iomanip>
 

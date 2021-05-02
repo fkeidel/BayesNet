@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "utils.h"
-#include "../clique_tree.h"
+#include "bayesnet/clique_tree.h"
 
 namespace Bayes 
 {

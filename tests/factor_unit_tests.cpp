@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "gtest/gtest.h"
-#include "../factor.h"
+#include "bayesnet/factor.h"
 
 namespace Bayes 
 {

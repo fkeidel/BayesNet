@@ -1,5 +1,5 @@
-#include "factor.h"
-#include "clique_tree.h"
+#include "bayesnet/factor.h"
+#include "bayesnet/clique_tree.h"
 #include <iostream>
 #include <iomanip>
 #include <chrono>

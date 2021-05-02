@@ -1,5 +1,5 @@
-#include "influence_diagram.h"
-#include "utils.h"
+#include "bayesnet/influence_diagram.h"
+#include "bayesnet/utils.h"
 
 namespace Bayes {
 

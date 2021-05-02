@@ -1,5 +1,5 @@
-﻿#include "factor.h"
-#include "../example_utils.h"
+﻿#include "bayesnet/factor.h"
+#include "examples/example_utils.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>

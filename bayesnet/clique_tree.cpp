@@ -1,8 +1,8 @@
 // based on Coursera course 'Probabilistic Graphical Models' by Daphne Koller, Stanford University
 // see https://www.coursera.org/specializations/probabilistic-graphical-models
 
-#include "clique_tree.h"
-#include <factor.cpp>
+#include "bayesnet/clique_tree.h"
+#include "bayesnet/factor.cpp"
 #include <unordered_map>
 #include <algorithm>
 
