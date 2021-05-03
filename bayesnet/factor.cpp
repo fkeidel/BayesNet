@@ -305,7 +305,7 @@ namespace Bayes
 	//
 	// Note: does not normalize the factor
 	//
-	void Factor::ObserveEvidence(const Evidence& e)
+	void Factor::ObserveEvidence(const Evidence& e, bool marginalize)
 	{
 		//  Iterate through all evidence variable/value pairs
 		for (const auto& evidence : e) {
@@ -327,7 +327,7 @@ namespace Bayes
 				for (size_t i = 0; i < val_.size(); ++i) {
 					// get assignment for this index
 					const auto a = IndexToAssignment(i);
-					// if assignment is not consisten with the evidence, set value to 0
+					// if assignment is not consistet with the evidence, set value to 0
 					if (a[indx] != e_val) 
 					{
 						SetVal(i, 0.0);
@@ -336,6 +336,11 @@ namespace Bayes
 
 				if (std::all_of(val_.begin(), val_.end(), [](double val) {return val == 0.0; }))
 					std::cout << "Warning: all values in the f are 0" << std::endl;
+
+				if (marginalize)
+				{
+					*this = Marginalize({ e_var });
+				}
 			} 
 		}
 	}

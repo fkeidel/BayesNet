@@ -22,7 +22,7 @@ int main()
    };
 
    // Instantiations of factors (variables of the factor, cardinalities, values)
-   Factor rain{ {RAIN}, {2}, { 0.86, 0.14 } };
+   const Factor rain{ {RAIN}, {2}, { 0.86, 0.14 } };
    Factor rain_given_season{ {RAIN,SEASON}, {2,2}, {0.82,0.18,0.86,0.14} };
 
    // a factor is a function object
@@ -31,14 +31,23 @@ int main()
    std::cout << "get value of assignement:\nvalue = " << value << std::endl;
 
    // factor product
-   Factor season{ {SEASON}, {2}, { 0.5, 0.5 } };
-   Factor joint = FactorProduct(season, rain_given_season);
+   const Factor season{ {SEASON}, {2}, { 0.5, 0.5 } };
+   const Factor joint = FactorProduct(season, rain_given_season);
    std::cout << "\nfactor product:\njoint:\n" << joint;
 
-    // factor marginalization
-    // remove Season from joint
-    Factor marginal = joint.Marginalize({SEASON});
-    std::cout << "marginalization\nmarginal:\n" << marginal;
+   // factor marginalization
+   // remove Season from joint
+   const Factor marginal = joint.Marginalize({SEASON});
+   std::cout << "marginalization\nmarginal:\n" << marginal;
+
+   // observe evidence
+   const Evidence evidence{ {SEASON, TRUE} };
+   rain_given_season.ObserveEvidence(evidence);
+   std::cout << "observe evidence\nrain_given_season(Season=true):\n" << rain_given_season;
+
+   bool marginalize{ true };
+   rain_given_season.ObserveEvidence(evidence, marginalize);
+   std::cout << "observe evidence (marginalize)\nrain_given_season(Season=true):\n" << rain_given_season;
 
 
 }
