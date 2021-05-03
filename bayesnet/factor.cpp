@@ -250,7 +250,7 @@ namespace Bayes
 		const auto& map_new_var = diff.left_indices;
 
 		// check for empty resultant factor
-		assert(("resultant factor is empty", !new_var.empty()));
+		assert(("resultant f is empty", !new_var.empty()));
 
 		// initialize new card
 		std::vector<uint32_t> new_card(new_var.size(), 0);
@@ -335,7 +335,7 @@ namespace Bayes
 				} // end for k = 1:length(F(j).val)
 
 				if (std::all_of(val_.begin(), val_.end(), [](double val) {return val == 0.0; }))
-					std::cout << "Warning: all values in the factor are 0" << std::endl;
+					std::cout << "Warning: all values in the f are 0" << std::endl;
 			} 
 		}
 	}
@@ -714,8 +714,8 @@ namespace Bayes
 		std::for_each(f.begin(), f.end(), [](auto& factor) {factor.Normalize(); });
 	}
 
-	std::ostream& operator<<(std::ostream& out, const Factor& v) {
-		out << "z=" << v.Var() << "card=" << v.Card() << "val=" << v.Val() << std::endl;
+	std::ostream& operator<<(std::ostream& out, const Factor& f) {
+		out << "var=" << f.Var() << "card=" << f.Card() << "val=" << f.Val() << std::endl;
 		return out;
 	}
 }

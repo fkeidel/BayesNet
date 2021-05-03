@@ -28,3 +28,8 @@ add_subdirectory(tests)
 # Examples
 ################################
 add_subdirectory(examples)
+
+################################
+# Doc
+################################
+add_subdirectory(doc)
