@@ -1,5 +1,5 @@
 # BayesNet
-This is a simple library for inference in [Bayesian Networks](https://en.wikipedia.org/wiki/Bayesian_network) in C++. It implements some basic algorithms for working with Probabilistic Graphical Models (PGM). It is based on the online Stanford course ["Probabilistic Graphical Models"](https://www.coursera.org/specializations/probabilistic-graphical-models) on Coursera. There are no dependencies to other libraries.
+This is a simple library for inference in [Bayesian Networks](https://en.wikipedia.org/wiki/Bayesian_network) in C++. It implements some basic algorithms for working with Probabilistic Graphical Models (PGM). It is based on the online Stanford course ["Probabilistic Graphical Models"](https://www.coursera.org/specializations/probabilistic-graphical-models) on Coursera. There are no dependencies to other libraries, except GoogleTest.
 
 ## Features
 ### Probability calculation with "factors"
@@ -44,6 +44,7 @@ BayesNet is free software. It is released under the [BSD Zero Clause License](LI
 - [Thesis: Dynamic Bayesian Networks: Representation, Inference and Learning (Murphy)](https://www.cs.ubc.ca/~murphyk/Thesis/thesis.html)
 - [Book: Probabilistic Graphical Models: Principles and Techniques (Koller, Friedman)](https://mitpress.mit.edu/books/probabilistic-graphical-models)
 - [Video: Graphical Models - Christopher Bishop - Machine Learning Summer School 2013](https://youtu.be/ju1Grt2hdko)
+- [Lecture Notes: Standford CS 228 - Probabilistic Graphical Models](https://ermongroup.github.io/cs228-notes/)
 ---
 <br>
 
