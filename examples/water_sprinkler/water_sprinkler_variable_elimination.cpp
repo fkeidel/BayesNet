@@ -29,16 +29,16 @@ int main()
 	Factor p_wet_gras_given_rain_and_sprinkler{ {WET_GRAS,RAIN,SPRINKLER}, {2,2,2}, {1,0,0.1,0.9,0.1,0.9,0.01,0.99} };
 
 	std::vector <Factor> factors{
-		{p_cloudy},
-		{p_sprinkler_given_cloudy},
-		{p_rain_given_cloudy},
-		{p_wet_gras_given_rain_and_sprinkler}
+		p_cloudy,
+		p_sprinkler_given_cloudy,
+		p_rain_given_cloudy,
+		p_wet_gras_given_rain_and_sprinkler
 	};
 
 	// eliminate all variables except WET_GRAS gives the marginal probability of WET_GRAS
-	auto f(factors);
+	auto f(factors); // make copy to preserve original factors
 	VariableElimination(f, {CLOUDY, RAIN, SPRINKLER});
-	const auto p_wet_gras = factors.front();
+	const auto p_wet_gras = f.front();
 
 	std::cout << std::fixed << std::setprecision(4);
 	std::cout << "\n"
@@ -50,9 +50,9 @@ int main()
 		<< "| " << p_wet_gras({ FALSE }) << " | " << p_wet_gras({ TRUE }) << " |\n"
 		<< "-------------------\n";
 
-	// If we want the probabilities of other veriables, we have to run Variable Elimination again.
+	// If we want the probabilities of other variables, we have to run Variable Elimination again.
 	// To get all marginal probabilities in one run, use the more efficient Clique Tree algorithm.
-	f = factors;
+	f = factors; // restore original factors
 	VariableElimination(f, { CLOUDY, SPRINKLER, WET_GRAS });
 	const auto p_rain = f.front();
 

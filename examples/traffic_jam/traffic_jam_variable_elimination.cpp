@@ -54,10 +54,10 @@ std::vector <Factor> CreateFactorList(
 	Factor cpd_radar_slow{ {RADAR,SLOW},  {2,2}, {1 - p_radar_given_not_slow,  p_radar_given_not_slow,  1 - p_radar_given_slow,   p_radar_given_slow} };
 
 	std::vector <Factor> factors{
-		{pd_traffic},
-		{cpd_slow_given_traffic},
-		{cpd_camera_given_slow},
-		{cpd_radar_slow}
+		pd_traffic,
+		cpd_slow_given_traffic,
+		cpd_camera_given_slow,
+		cpd_radar_slow
 	};
 
 	return factors;

@@ -65,10 +65,10 @@ int main()
 	Factor p_wet_gras_given_rain_and_sprinkler{ {WET_GRAS,RAIN,SPRINKLER}, {2,2,2}, {1,0,0.1,0.9,0.1,0.9,0.01,0.99} };
 
 	std::vector <Factor> factors{
-		{p_cloudy},
-		{p_sprinkler_given_cloudy},
-		{p_rain_given_cloudy},
-		{p_wet_gras_given_rain_and_sprinkler}
+		p_cloudy,
+		p_sprinkler_given_cloudy,
+		p_rain_given_cloudy, 
+		p_wet_gras_given_rain_and_sprinkler
 	};
 
 	const bool MAP{ false };
