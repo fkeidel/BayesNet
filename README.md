@@ -28,6 +28,9 @@ This is a simple library for inference in [Bayesian Networks](https://en.wikiped
 - currently only discrete variables are supported
 - currently only simple influence diagrams possible (one decision, one utility factor)
 
+## Tutorial
+There is a [tutorial](doc/tutorial.ipynb) explaining factor calculation and showing how to run inference on Bayesian Networks.
+
 ## Examples
 - [Disease-Test](examples/disease_test/disease_test.md) (Bayes Theorem, factor calculation, variable elimination)
 - [Water Sprinkler](examples/water_sprinkler/water_sprinkler.md) (variable elimination, clique tree)
@@ -45,6 +48,10 @@ BayesNet is free software. It is released under the [BSD Zero Clause License](LI
 - [Book: Probabilistic Graphical Models: Principles and Techniques (Koller, Friedman)](https://mitpress.mit.edu/books/probabilistic-graphical-models)
 - [Video: Graphical Models - Christopher Bishop - Machine Learning Summer School 2013](https://youtu.be/ju1Grt2hdko)
 - [Lecture Notes: Standford CS 228 - Probabilistic Graphical Models](https://ermongroup.github.io/cs228-notes/)
+
+## Tools
+- [Open Markov](http://www.openmarkov.org/): Open-source software tool for Probabilistic Graphical Models in Java
+
 ---
 <br>
 
