@@ -1,14 +1,7 @@
-#include "utils.h"
+#include "test_utils.h"
 
-namespace Bayes {
-	void ExpectVectorElementsNear(std::vector<double> result, std::vector<double> expected)
-	{
-
-		for (size_t i = 0; i < result.size(); ++i) {
-			EXPECT_NEAR(result[i], expected[i], 0.001);
-		}
-	}
-
+namespace Bayes 
+{
 	void ExpectFactorEqual(Factor actual, Factor expected)
 	{
 		EXPECT_EQ(actual.Var(), expected.Var());

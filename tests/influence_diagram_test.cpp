@@ -1,6 +1,6 @@
 #include "bayesnet/factor.h"
 #include "bayesnet/influence_diagram.h"
-#include "utils.h"
+#include "test_utils.h"
 #include "gtest/gtest.h"
 #include <algorithm>
 

@@ -2,26 +2,10 @@
 
 #include "gtest/gtest.h"
 #include "bayesnet/factor.h"
+#include "test_utils.h"
 
 namespace Bayes 
 {
-	void ExpectFactorEqual(const Bayes::Factor& result, const Bayes::Factor& expected)
-	{
-		EXPECT_EQ(result.Var(), expected.Var());
-		EXPECT_EQ(result.Card(), expected.Card());
-		for (size_t i = 0; i < result.Val().size(); ++i) {
-			EXPECT_NEAR(result.Val(i), expected.Val(i),0.001);
-		}
-	}
-
-	void ExpectFactorsEqual(const std::vector<Bayes::Factor>& result, const std::vector<Bayes::Factor>& expected)
-	{
-		ASSERT_EQ(result.size(), expected.size());
-		for (size_t i = 0; i < expected.size(); ++i) {
-			ExpectFactorEqual(result[i], expected[i]);
-		}
-	}
-
 	TEST(Factor, AssigmentToIndex)
 	{
 		const Factor factor{ {3,1,2}, {2,2,2}, {0,1,2,3,4,5,6,7} };
@@ -49,6 +33,18 @@ namespace Bayes
 		const std::vector<uint32_t> assignment({ 1,0,1 });
 		const auto value = factor.GetValueOfAssignment(assignment);
 		EXPECT_EQ(value, 5);
+	}
+
+	TEST(Factor, GetValueOfAssignment_GivenOrder)
+	{
+		const Factor factor{ {3,1,2}, {2,2,2}, {0,1,2,3,4,5,6,7} };
+		std::vector<uint32_t> assignment({ 1,1,0,1,0 });
+		const std::vector<uint32_t> order({ 0,1,2,3,4 });
+		auto value = factor.GetValueOfAssignment(assignment, order);
+		EXPECT_EQ(value, 3);
+		assignment = { 0,1,1,0,1 };
+		value = factor.GetValueOfAssignment(assignment, order);
+		EXPECT_EQ(value, 6);
 	}
 
 	TEST(Factor, SetValueOfAssignment)

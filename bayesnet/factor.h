@@ -60,6 +60,8 @@ namespace Bayes {
 			return GetValueOfAssignment(assignment);
 		}
 
+		double GetValueOfAssignment(const std::vector<uint32_t>& assignment, const std::vector<uint32_t>& order) const;
+
 		void SetValueOfAssignment(const std::vector<uint32_t>& assignment, double value);
 
 		bool operator==(const Factor& rhs) const

@@ -168,5 +168,12 @@ namespace Bayes {
 		return result;
 	}
 
+	template <class T>
+	void Unique(std::vector<T>& v) {
+		std::sort(v.begin(), v.end());
+		const auto last = std::unique(v.begin(), v.end());
+		v.erase(last, v.end());
+	}
+
 }
 #endif // FACTOR_H

@@ -54,6 +54,21 @@ namespace Bayes
 		return val_[AssigmentToIndex(assignment)];
 	}
 
+	double Factor::GetValueOfAssignment(const std::vector<uint32_t>& assignment, const std::vector<uint32_t>& order) const
+	{
+		const auto intersection_result = Intersection(var_, order);
+		assert(("order must contain var", intersection_result.values.size() == var_.size()));
+
+		const auto map_var = intersection_result.left_indices;
+		const auto map_order = intersection_result.right_indices;
+		std::vector<uint32_t> new_a(var_.size(), 0U);
+		for (uint32_t i = 0; i < var_.size(); ++i) {
+			new_a[map_var[i]] = assignment[map_order[i]];
+		}
+		return val_[AssigmentToIndex(new_a)];
+	}
+
+
 	void Factor::SetValueOfAssignment(const std::vector<uint32_t>& assignment, double value)
 	{
 		val_[AssigmentToIndex(assignment)] = value;
