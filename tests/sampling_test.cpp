@@ -76,7 +76,6 @@ namespace Bayes
 	std::pair<Graph, std::vector<Factor>> CreateGridMrf(uint32_t n, double weight_of_agreement, double weight_of_disagreement)
 	{
 		//k = 2;   sub-square length
-		uint32_t k{ 2 };
 		//V = 1:n*n;
 		std::vector<uint32_t> var(n * n, 0);
 		std::iota(var.begin(), var.end(), 0);
@@ -92,7 +91,6 @@ namespace Bayes
 		//edges = zeros(length(V));
 		//	cardinality of edges matrix is |v|*|v|
 		std::vector<std::vector<uint32_t>> edges(var.size(), std::vector<uint32_t>(var.size(), 0));
-		std::vector<Factor> pairwise_factors;
 		//for i = 1:length(V)
 		for (uint32_t i = 0; i < var.size(); ++i) {
 			//	 for j = i+1:length(V)
@@ -106,15 +104,12 @@ namespace Bayes
 				if (Sum(Abs(row_column_i - row_column_j)) == 1) {
 					//	edges(i, j) = 1;
 					edges[i][j] = 1;
-					edges[j][i] = 1;
-					pairwise_factors.push_back({ {i,j},{2,2},
-						{weight_of_agreement,weight_of_disagreement,weight_of_disagreement,weight_of_agreement} });
+					edges[j][i] = 1; //G.edges = or(edges, edges');
 				}
 				//	end
 			}// end
 		}//end
-		//G.edges = or(edges, edges');
-
+		
 		//singleton_factors = [];
 		std::vector<Factor> singleton_factors(var.size());
 		//for i = 1:length(V)
@@ -133,19 +128,34 @@ namespace Bayes
 			}// end
 		}// end
 
+		std::vector<uint32_t> find_idx;
+		for (uint32_t i = 0; i < var.size(); ++i) {
+			for (uint32_t j = 0; j < i; ++j) {
+				if (edges[i][j] == 1) {
+					find_idx.push_back(i + j * var.size());
+				}
+			}
+		}
 		//pairwise_factors = [];
-
+		std::vector<Factor> pairwise_factors;
 
 		//[r, c] = ind2sub([length(V), length(V)], find(edges));
 		//edge_list = [r, c];
+		std::vector<std::pair<uint32_t, uint32_t>> edge_list(find_idx.size());
+		for (uint32_t i = 0; i < find_idx.size(); ++i) {
+			edge_list[i] = Ind2Sub(var.size(), find_idx[i]);
+		}
+
 		//for i = 1:size(edge_list, 1)
-		//	 pairwise_factors(i).var = edge_list(i, :);
-		//	 pairwise_factors(i).card = [2, 2];
-		//	 pairwise_factors(i).val = [on_diag_weight, off_diag_weight, ...
-		//								off_diag_weight, on_diag_weight];
-
-		//end
-
+		for (const auto edge : edge_list) {
+			//	 pairwise_factors(i).var = edge_list(i, :);
+			//	 pairwise_factors(i).card = [2, 2];
+			//	 pairwise_factors(i).val = [on_diag_weight, off_diag_weight, ...
+			//								off_diag_weight, on_diag_weight];
+			pairwise_factors.push_back({ {edge.first, edge.second},{2,2},
+				{weight_of_agreement,weight_of_disagreement,weight_of_disagreement,weight_of_agreement} });
+		}//end
+		
 		//F = [singleton_factors, pairwise_factors];
 		std::vector<Factor> factors{ singleton_factors };
 		factors.insert(factors.end(), pairwise_factors.begin(), pairwise_factors.end());

@@ -471,7 +471,7 @@ namespace Bayes {
 		//for i = 1:max_iter
 		for (uint32_t i = 0; i < max_iter; ++i) {
 			//    if mod(i, 25) == 0
-			if (i  25 == 0) {
+			if (i % 25 == 0) {
 				//  disp(['Iteration ', num2str(i)]);
 				std::cout << "Iteration " << i << std::endl;
 			}//    end
