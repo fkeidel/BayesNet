@@ -318,19 +318,19 @@ int main()
 	//transition_names = {'Gibbs', 'MHUniform', 'MHGibbs', 'MHSwendsenWang1', 'MHSwendsenWang2'};
 	std::vector<Trans> trans
 	{  
-		//Gibbs,
-		//MHUniform,
-		//MHGibbs,
-		//MHSwendsenWang1,
+		Gibbs,
+		MHUniform,
+		MHGibbs,
+		MHSwendsenWang1,
 		MHSwendsenWang2
 	};
 
 	std::vector<std::string> trans_names
 	{
-		//"Gibbs",
-		//"MHUniform",
-		//"MHGibbs",
-		//"MHSwendsenWang1",
+		"Gibbs",
+		"MHUniform",
+		"MHGibbs",
+		"MHSwendsenWang1",
 		"MHSwendsenWang2"
 	};
 
