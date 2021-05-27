@@ -44,4 +44,34 @@ namespace Bayes
 		EXPECT_EQ(grid_mrf.first.edges, edges_expected);
 	}
 
+	TEST(Grid, Smooth_Given5ValuesAndSpan3) 
+	{
+		std::vector<uint32_t> y{ 42,7,34,5,9 };
+		auto smooth_expected{ y };
+		smooth_expected[1] = (y[0] + y[1] + y[2]) / 3;
+		smooth_expected[2] = (y[1] + y[2] + y[3]) / 3;
+		smooth_expected[3] = (y[2] + y[3] + y[4]) / 3;
+
+		const auto smooth = Smooth(y, 3);
+
+		EXPECT_EQ(smooth, smooth_expected);
+	}
+
+	TEST(Grid, Smooth_Given5ValuesAndSpan5)
+	{
+		//+% !yy2(2) = (y(1) + y(2) + y(3)) / 3;
+		//+% !yy2(3) = (y(1) + y(2) + y(3) + y(4) + y(5)) / 5;
+		//+% !yy2(4) = (y(3) + y(4) + y(5)) / 3;
+		std::vector<uint32_t> y{ 42,7,34,5,9 };
+		auto smooth_expected{ y };
+		smooth_expected[1] = (y[0] + y[1] + y[2]) / 3;
+		smooth_expected[2] = (y[0] + y[1] + y[2] + y[3] + y[4]) / 5;
+		smooth_expected[3] = (y[2] + y[3] + y[4]) / 3;
+
+		const auto smooth = Smooth(y, 5);
+
+		EXPECT_EQ(smooth, smooth_expected);
+	}
+
+
 }

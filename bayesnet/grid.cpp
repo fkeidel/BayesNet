@@ -1,6 +1,5 @@
 #include "bayesnet/grid.h"
 #include <utility>
-#include <cassert>
 #include <vector>
 
 namespace Bayes
@@ -142,6 +141,4 @@ namespace Bayes
 		Graph g{ var, card, edges, var2factors };
 		return { {g},{factors} };
 	}
-
-
 }
