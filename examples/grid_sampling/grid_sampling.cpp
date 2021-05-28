@@ -265,7 +265,7 @@ int main()
 
 	uint32_t num_chains_to_run{ 3 };
 	uint32_t mix_time{ 0 };
-	uint32_t collect{ 1600 };
+	uint32_t collect{ 4000 };
 		
 	// Directory to save the plots into, change to your output path
 	//plotsdir = './plots_test';

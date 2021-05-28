@@ -35,6 +35,7 @@ There is a [tutorial](doc/tutorial.ipynb) explaining factor calculation and show
 - [Disease-Test](examples/disease_test/disease_test.md) (Bayes Theorem, factor calculation, variable elimination)
 - [Water Sprinkler](examples/water_sprinkler/water_sprinkler.md) (variable elimination, clique tree)
 - [Simple Bayesian Traffic Jam Detector](examples/traffic_jam/traffic_jam.ipynb) (sensor fusion, Hidden Markov Model, Dynamic Bayesian Network)
+- [Markov Random Field grid sampling](examples/grid_sampling/grid_sampling.ipynb) (Markov Random Field, Grid, Sampling)
 
 ## Install, build, run
 see [How to install, build and run](install-build-run.md)
