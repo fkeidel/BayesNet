@@ -2,6 +2,8 @@
 #define EXAMPLE_UTILS_H
 
 #include <fstream>
+#include <sstream>
+#include <vector>
 
 template<class T>
 void WriteTableToCsv(const std::string file_path, const std::vector<std::vector<T>>& data, std::string header = {}, bool transpose = false)
