@@ -1,6 +1,6 @@
 #include "bayesnet/clique_tree.h"
-#include "examples/example_utils.h"
 #include "bayesnet/grid.h"
+#include "bayesnet/io/csv.h"
 #include "bayesnet/sampling.h"
 #include <chrono>
 #include <random>

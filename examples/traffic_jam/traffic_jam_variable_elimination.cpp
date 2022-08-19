@@ -1,8 +1,8 @@
 ﻿#include "bayesnet/factor.h"
-#include "examples/example_utils.h"
-#include <iostream>
-#include <iomanip>
+#include "bayesnet/io/csv.h"
 #include <cstdlib>
+#include <iomanip>
+#include <iostream>
 #include <string>
 
 // Traffic jam warning system
